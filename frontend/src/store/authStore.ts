@@ -39,3 +39,16 @@ axios.interceptors.request.use((config) => {
     }
     return config;
 });
+
+// Axios interceptor to handle 401/403 responses
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      useAuthStore.getState().logout();
+      // Optional: Redirect to login if not already there, 
+      // but logout() clears user state which PrivateRoute observes, triggering redirect.
+    }
+    return Promise.reject(error);
+  }
+);

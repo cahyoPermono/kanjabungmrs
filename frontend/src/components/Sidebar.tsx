@@ -21,9 +21,9 @@ export function Sidebar() {
         { href: '/admin', label: 'Home', icon: Home, roles: ['ADMIN'] },
         { href: '/employee', label: 'Home', icon: Home, roles: ['EMPLOYEE'] },
         { href: '/teams', label: 'Teams', icon: Users, roles: ['MANAGER', 'ADMIN'] }, // Placeholder
-        { href: '/timesheet', label: 'Timesheet', icon: Calendar, roles: ['MANAGER', 'EMPLOYEE'] }, // Placeholder
+        { href: '/timesheet', label: 'Timesheet', icon: Calendar, roles: ['MANAGER', 'EMPLOYEE'] },
         { href: '/tasks', label: 'Tasks', icon: ListTodo, roles: ['MANAGER', 'EMPLOYEE'] },
-        { href: '/reports', label: 'Report', icon: FileText, roles: ['MANAGER', 'ADMIN'] }, // Placeholder
+        { href: '/reports', label: 'Report', icon: FileText, roles: ['MANAGER', 'ADMIN'] },
     ];
 
     const filteredLinks = links.filter(link => link.roles.includes(user?.role || ''));

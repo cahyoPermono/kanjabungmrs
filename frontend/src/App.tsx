@@ -5,6 +5,8 @@ import ManagerDashboard from './pages/ManagerDashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
 import Teams from './pages/Teams';
 import Timesheet from './pages/Timesheet';
+import Tasks from './pages/Tasks';
+import Reports from './pages/Reports';
 import { useAuthStore } from './store/authStore';
 import { DashboardLayout } from './components/DashboardLayout';
 import { JSX } from 'react';
@@ -39,8 +41,16 @@ function App() {
                      <EmployeeDashboard />
                 </PrivateRoute>
             } />
-            {/* Add placeholders for other routes */}
-            <Route path="/tasks" element={<div className="p-8">Tasks View (Use Employee Dashboard)</div>} />
+            <Route path="/tasks" element={
+                <PrivateRoute roles={['MANAGER', 'EMPLOYEE']}>
+                    <Tasks />
+                </PrivateRoute>
+            } />
+            <Route path="/reports" element={
+                <PrivateRoute roles={['MANAGER']}>
+                    <Reports />
+                </PrivateRoute>
+            } />
             <Route path="/teams" element={
                 <PrivateRoute roles={['MANAGER']}>
                     <Teams />
