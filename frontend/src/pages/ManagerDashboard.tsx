@@ -36,6 +36,22 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { cn } from '@/lib/utils';
 
 // Interfaces
@@ -193,6 +209,17 @@ export default function ManagerDashboard() {
         }
     }
 
+    const handleUpdateDueDate = async (taskId: number, dueDate: string) => {
+        try {
+            await axios.put(`http://localhost:3000/api/tasks/${taskId}`, {
+                dueDate
+            });
+            fetchGoals();
+        } catch (error) {
+             console.error(error);
+        }
+    }
+
     const handleAddComment = async (taskId: number, content: string) => {
         try {
             await axios.post(`http://localhost:3000/api/tasks/${taskId}/comments`, { content });
@@ -201,6 +228,24 @@ export default function ManagerDashboard() {
             console.error(error);
         }
     };
+
+    const handleDeleteTask = async (taskId: number) => {
+        try {
+            await axios.delete(`http://localhost:3000/api/tasks/${taskId}`);
+            fetchGoals();
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    const handleDeleteGoal = async (goalId: number) => {
+        try {
+            await axios.delete(`http://localhost:3000/api/goals/${goalId}`);
+            fetchGoals();
+        } catch (error) {
+           console.error(error);
+        }
+    }
 
     const openAddTask = (goalId: number, status: string) => {
         setSelectedGoalId(goalId);
@@ -234,7 +279,10 @@ export default function ManagerDashboard() {
                         onAddTask={openAddTask}
                         onUpdateAssignee={handleUpdateAssignee}
                         onUpdatePriority={handleUpdatePriority}
+                        onUpdateDueDate={handleUpdateDueDate}
                         onAddComment={handleAddComment}
+                        onDeleteTask={handleDeleteTask}
+                        onDeleteGoal={handleDeleteGoal}
                     />
                 ))}
             </div>
@@ -320,14 +368,20 @@ function CollapsibleGoal({
     onAddTask, 
     onUpdateAssignee,
     onUpdatePriority,
-    onAddComment 
+    onUpdateDueDate,
+    onAddComment,
+    onDeleteTask,
+    onDeleteGoal
 }: { 
     goal: Goal, 
     employees: User[],
     onAddTask: (gid: number, status: string) => void,
     onUpdateAssignee: (tid: number, uid: number) => void,
     onUpdatePriority: (tid: number, priority: string) => void,
-    onAddComment: (tid: number, content: string) => void
+    onUpdateDueDate: (tid: number, date: string) => void,
+    onAddComment: (tid: number, content: string) => void,
+    onDeleteTask: (tid: number) => void,
+    onDeleteGoal: (gid: number) => void
 }) {
     const [isOpen, setIsOpen] = useState(true);
 
@@ -339,7 +393,7 @@ function CollapsibleGoal({
             >
                 {isOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
                 <h2 className="text-xl font-semibold">{goal.title}</h2>
-                <span className="text-muted-foreground text-sm">...</span>
+                <GoalActionsMenu goal={goal} onDelete={onDeleteGoal} />
             </div>
 
             {isOpen && (
@@ -384,10 +438,7 @@ function CollapsibleGoal({
                                                         <AssigneePopover task={task} employees={employees} onUpdate={onUpdateAssignee} />
                                                     </TableCell>
                                                     <TableCell className="align-top">
-                                                        <div className="flex items-center gap-2 text-muted-foreground mt-1">
-                                                            <CalendarIcon className="h-4 w-4" />
-                                                            {task.dueDate ? format(new Date(task.dueDate), 'MMM d') : '-'}
-                                                        </div>
+                                                        <DueDatePopover task={task} onUpdate={onUpdateDueDate} />
                                                     </TableCell>
                                                     <TableCell className="align-top">
                                                         <PriorityPopover task={task} onUpdate={onUpdatePriority} />
@@ -401,7 +452,7 @@ function CollapsibleGoal({
                                                         <CommentPopover task={task} onAddComment={(content) => onAddComment(task.id, content)} />
                                                     </TableCell>
                                                     <TableCell className="align-top">
-                                                        <MoreHorizontal className="h-4 w-4 text-muted-foreground mt-1" />
+                                                        <MoreActionsMenu task={task} onDelete={onDeleteTask} />
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
@@ -424,6 +475,38 @@ function CollapsibleGoal({
             <div className="h-px bg-border my-8" />
         </div>
     );
+}
+
+
+function DueDatePopover({ task, onUpdate }: { task: Task, onUpdate: (tid: number, date: string) => void }) {
+    const [date, setDate] = useState(task.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '');
+    const [open, setOpen] = useState(false);
+
+    const handleUpdate = () => {
+        onUpdate(task.id, date);
+        setOpen(false);
+    };
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <div className="flex items-center gap-2 text-muted-foreground mt-1 cursor-pointer hover:bg-muted p-1 rounded-md w-fit">
+                    <CalendarIcon className="h-4 w-4" />
+                    {task.dueDate ? format(new Date(task.dueDate), 'MMM d') : '-'}
+                </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-4">
+                <div className="flex gap-2">
+                    <Input 
+                        type="date" 
+                        value={date} 
+                        onChange={(e) => setDate(e.target.value)} 
+                    />
+                    <Button size="sm" onClick={handleUpdate}>Save</Button>
+                </div>
+            </PopoverContent>
+        </Popover>
+    )
 }
 
 function AssigneePopover({ task, employees, onUpdate }: { task: Task, employees: User[], onUpdate: (tid: number, uid: number) => void }) {
@@ -530,7 +613,7 @@ function CommentPopover({ task, onAddComment }: { task: Task, onAddComment: (c: 
                         <span className="text-xs text-muted-foreground font-medium">{task.comments.length}</span>
                     )}
                     {task.comments.length === 0 && (
-                       <Plus className="h-3 w-3 text-muted-foreground" />
+                        <Plus className="h-3 w-3 text-muted-foreground" />
                     )}
                 </div>
             </PopoverTrigger>
@@ -561,5 +644,109 @@ function CommentPopover({ task, onAddComment }: { task: Task, onAddComment: (c: 
                 </div>
             </PopoverContent>
         </Popover>
+    )
+}
+
+function MoreActionsMenu({ task, onDelete }: { task: Task, onDelete: (tid: number) => void }) {
+    const [open, setOpen] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+    return (
+        <>
+            <DropdownMenu open={open} onOpenChange={setOpen}>
+                <DropdownMenuTrigger asChild>
+                    <div className="group h-8 w-8 flex items-center justify-center rounded-md hover:bg-muted cursor-pointer transition-colors">
+                        <MoreHorizontal className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+                    </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[160px]">
+                    <DropdownMenuItem 
+                        className="text-red-600 focus:text-red-600 cursor-pointer"
+                        onSelect={() => setShowDeleteDialog(true)}
+                    >
+                        Delete Task
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the task
+                            <span className="font-medium text-foreground"> "{task.title}" </span>
+                            and remove it from our servers.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => {
+                                onDelete(task.id);
+                                setShowDeleteDialog(false);
+                            }}
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
+    )
+}
+
+function GoalActionsMenu({ goal, onDelete }: { goal: Goal, onDelete: (gid: number) => void }) {
+    const [open, setOpen] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+    return (
+        <>
+            <DropdownMenu open={open} onOpenChange={setOpen}>
+                <DropdownMenuTrigger asChild>
+                    <div 
+                        className="group h-8 w-8 flex items-center justify-center rounded-md hover:bg-muted cursor-pointer transition-colors"
+                        onClick={(e) => e.stopPropagation()} 
+                    >
+                        <MoreHorizontal className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+                    </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[180px]" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuItem 
+                        className="text-red-600 focus:text-red-600 cursor-pointer"
+                        onSelect={() => setShowDeleteDialog(true)}
+                    >
+                        Delete Goal
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Goal?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the goal
+                            <span className="font-medium text-foreground"> "{goal.title}" </span>
+                            and <span className="font-bold text-red-600">ALL tasks</span> associated with it.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(goal.id);
+                                setShowDeleteDialog(false);
+                            }}
+                        >
+                            Delete Goal
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     )
 }

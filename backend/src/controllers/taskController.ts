@@ -113,7 +113,8 @@ export const updateTask = async (req: AuthRequest, res: Response) => {
 
         const data: any = {
             status,
-            priority
+            priority,
+            dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined
         };
 
         if (assigneeId !== undefined) {
@@ -163,3 +164,21 @@ export const addComment = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: "Error adding comment", error });
   }
 };
+// Delete Task
+export const deleteTask = async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    
+    // Only Manager can delete
+    if (req.user?.role !== 'MANAGER') {
+        return res.status(403).json({ message: 'Not authorized to delete tasks' });
+    }
+
+    if (!id || typeof id !== 'string') return res.status(400).json({ message: 'Invalid task ID' });
+
+    try {
+        await prisma.task.delete({ where: { id: parseInt(id) } });
+        res.status(204).send();
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting task' });
+    }
+}

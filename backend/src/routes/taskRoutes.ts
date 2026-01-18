@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticateToken } from '../middleware/auth';
-import { getTasks, createTask, updateTask, addComment } from '../controllers/taskController';
+import { getTasks, createTask, updateTask, addComment, deleteTask } from '../controllers/taskController';
 
 const router: Router = Router();
 
@@ -10,5 +10,6 @@ router.get('/', getTasks);
 router.post('/', createTask);
 router.put('/:id', updateTask);
 router.post('/:id/comments', addComment);
+router.delete('/:id', deleteTask);
 
 export default router;

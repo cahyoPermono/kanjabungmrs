@@ -88,12 +88,32 @@ export const getDivisionEmployees = async (req: AuthRequest, res: Response) => {
     try {
         const employees = await prisma.user.findMany({
             where: {
-                divisionId: req.user.divisionId
+                divisionId: req.user.divisionId,
+                role: 'EMPLOYEE'
             },
             select: { id: true, name: true, email: true, role: true }
         });
         res.json(employees);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching employees' });
+    }
+}
+
+// Delete Goal
+export const deleteGoal = async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+
+    if (!req.user || req.user.role !== 'MANAGER') {
+        return res.status(403).json({ message: 'Only managers can delete goals' });
+    }
+
+    if (!id || typeof id !== 'string') return res.status(400).json({ message: 'Invalid goal ID' });
+
+    try {
+        await prisma.task.deleteMany({ where: { goalId: parseInt(id) } }); 
+        await prisma.goal.delete({ where: { id: parseInt(id) } });
+        res.status(204).send();
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error deleting goal' });
     }
 }
