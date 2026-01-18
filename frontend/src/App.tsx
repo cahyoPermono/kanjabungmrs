@@ -4,6 +4,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import ManagerDashboard from './pages/ManagerDashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
 import Teams from './pages/Teams';
+import Timesheet from './pages/Timesheet';
 import { useAuthStore } from './store/authStore';
 import { DashboardLayout } from './components/DashboardLayout';
 import { JSX } from 'react';
@@ -43,6 +44,11 @@ function App() {
             <Route path="/teams" element={
                 <PrivateRoute roles={['MANAGER']}>
                     <Teams />
+                </PrivateRoute>
+            } />
+            <Route path="/timesheet" element={
+                <PrivateRoute roles={['MANAGER', 'EMPLOYEE']}>
+                    <Timesheet />
                 </PrivateRoute>
             } />
         </Route>

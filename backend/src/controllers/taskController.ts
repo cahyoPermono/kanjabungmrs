@@ -30,7 +30,7 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
     // - BUT "manager bisa melihat task2 employee yang berada dalam 1 divisi".
     // Let's implement parameter filtering.
 
-    const { userId } = req.query; // Filter by user if provided (Manager view specific employee)
+    const { userId, date } = req.query; // Filter by user if provided (Manager view specific employee)
 
     try {
         const whereClause: any = {
@@ -49,11 +49,27 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
              whereClause.assigneeId = Number(userId);
         }
 
+        if (date) {
+            const queryDate = new Date(date as string);
+            // Create start and end of day
+            const startOfDay = new Date(queryDate.setHours(0, 0, 0, 0));
+            const endOfDay = new Date(queryDate.setHours(23, 59, 59, 999));
+            
+            whereClause.dueDate = {
+                gte: startOfDay,
+                lte: endOfDay
+            };
+        }
+
         const tasks = await prisma.task.findMany({
             where: whereClause,
             include: {
                 goal: { select: { title: true } },
-                assignee: { select: { name: true } }
+                assignee: { select: { id: true, name: true, email: true } }, // Include id and email for avatar
+                comments: {
+                    include: { user: { select: { id: true, name: true } } },
+                    orderBy: { createdAt: 'desc' }
+                }
             },
             orderBy: { createdAt: 'desc' }
         });
