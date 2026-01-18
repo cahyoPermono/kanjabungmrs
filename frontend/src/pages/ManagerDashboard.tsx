@@ -4,22 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
     Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
 } from "@/components/ui/accordion"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Plus, MessageSquare, MoreHorizontal, Calendar as CalendarIcon, Flag, ChevronDown, ChevronRight, Clock } from 'lucide-react';
-import { format } from 'date-fns';
+import { ChevronDown, ChevronRight, MoreHorizontal } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -35,7 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,46 +37,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { cn } from '@/lib/utils';
-
-// Interfaces
-interface User {
-    id: number;
-    name: string;
-    email: string;
-}
-
-interface Comment {
-    id: number;
-    content: string;
-    userId: number;
-    user: User;
-    createdAt: string;
-}
-
-interface TaskHistory {
-    id: number;
-    taskId: number;
-    userId: number;
-    user: { name: string };
-    action: string;
-    oldValue: string | null;
-    newValue: string | null;
-    createdAt: string;
-}
-
-interface Task {
-    id: number;
-    title: string;
-    description: string;
-    status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
-    priority: 'LOW' | 'MEDIUM' | 'HIGH';
-    dueDate: string | null;
-    assignee: User | null;
-    assigneeId: number | null;
-    goalId: number;
-    comments: Comment[];
-}
+import { TaskStatusGroup } from '@/components/task/TaskStatusGroup';
+import { useTaskOperations } from '@/hooks/useTaskOperations';
+import { User, Task } from '@/components/task/TaskActions';
 
 interface Goal {
     id: number;
@@ -100,18 +48,6 @@ interface Goal {
     tasks: Task[];
     creator: User;
 }
-
-const statusColors = {
-    TODO: "bg-slate-500",
-    IN_PROGRESS: "bg-blue-500",
-    COMPLETED: "bg-green-500"
-};
-
-const priorityIcons = {
-    LOW: <Flag className="h-4 w-4 text-slate-500" />,
-    MEDIUM: <Flag className="h-4 w-4 text-yellow-500" />,
-    HIGH: <Flag className="h-4 w-4 text-red-500" />
-};
 
 export default function ManagerDashboard() {
     const [goals, setGoals] = useState<Goal[]>([]);
@@ -157,6 +93,9 @@ export default function ManagerDashboard() {
         }
     }
 
+    // Use shared operations hook
+    const { updateAssignee, updatePriority, updateDueDate, addComment, deleteTask } = useTaskOperations(fetchGoals);
+
     useEffect(() => {
         fetchGoals();
         fetchEmployees();
@@ -197,57 +136,6 @@ export default function ManagerDashboard() {
             console.error(error);
         }
     };
-
-    const handleUpdateAssignee = async (taskId: number, assigneeId: number) => {
-        try {
-            await axios.put(`http://localhost:3000/api/tasks/${taskId}`, {
-                assigneeId
-            });
-            fetchGoals();
-        } catch (error) {
-             console.error(error);
-        }
-    }
-
-    const handleUpdatePriority = async (taskId: number, priority: string) => {
-        try {
-            await axios.put(`http://localhost:3000/api/tasks/${taskId}`, {
-                priority
-            });
-            fetchGoals();
-        } catch (error) {
-             console.error(error);
-        }
-    }
-
-    const handleUpdateDueDate = async (taskId: number, dueDate: string) => {
-        try {
-            await axios.put(`http://localhost:3000/api/tasks/${taskId}`, {
-                dueDate
-            });
-            fetchGoals();
-        } catch (error) {
-             console.error(error);
-        }
-    }
-
-    const handleAddComment = async (taskId: number, content: string) => {
-        try {
-            await axios.post(`http://localhost:3000/api/tasks/${taskId}/comments`, { content });
-            fetchGoals();
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const handleDeleteTask = async (taskId: number) => {
-        try {
-            await axios.delete(`http://localhost:3000/api/tasks/${taskId}`);
-            fetchGoals();
-        } catch (error) {
-            console.error(error);
-        }
-    }
 
     const handleDeleteGoal = async (goalId: number) => {
         try {
@@ -292,11 +180,11 @@ export default function ManagerDashboard() {
                         goal={goal} 
                         employees={employees}
                         onAddTask={openAddTask}
-                        onUpdateAssignee={handleUpdateAssignee}
-                        onUpdatePriority={handleUpdatePriority}
-                        onUpdateDueDate={handleUpdateDueDate}
-                        onAddComment={handleAddComment}
-                        onDeleteTask={handleDeleteTask}
+                        onUpdateAssignee={updateAssignee}
+                        onUpdatePriority={updatePriority}
+                        onUpdateDueDate={updateDueDate}
+                        onAddComment={addComment}
+                        onDeleteTask={deleteTask}
                         onDeleteGoal={handleDeleteGoal}
                     />
                 ))}
@@ -415,74 +303,20 @@ function CollapsibleGoal({
                 <Accordion type="multiple" defaultValue={["IN_PROGRESS", "TODO", "COMPLETED"]} className="w-full space-y-4 pl-4">
                     {["IN_PROGRESS", "TODO", "COMPLETED"].map((status) => {
                         const tasks = goal.tasks.filter(t => t.status === status);
-                        const count = tasks.length;
                         
                         return (
-                            <AccordionItem key={status} value={status} className="border-none">
-                                <div className="flex items-center gap-4 mb-2">
-                                    <AccordionTrigger className="hover:no-underline py-2">
-                                         <Badge className={`${statusColors[status as keyof typeof statusColors]} hover:${statusColors[status as keyof typeof statusColors]}`}>
-                                            {status.replace('_', ' ')}
-                                         </Badge>
-                                    </AccordionTrigger>
-                                    <span className="text-lg font-medium text-muted-foreground">{count}</span>
-                                    <Button variant="secondary" size="sm" className="h-8" onClick={(e) => { e.stopPropagation(); onAddTask(goal.id, status); }}>
-                                        <Plus className="h-4 w-4 mr-1" /> Add Task
-                                    </Button>
-                                </div>
-
-                                <AccordionContent>
-                                    <div className="rounded-md border bg-card">
-                                      <Table>
-                                        <TableHeader>
-                                          <TableRow>
-                                            <TableHead className="w-[30%]">Name</TableHead>
-                                            <TableHead className="w-[20%]">Assignee</TableHead>
-                                            <TableHead className="w-[15%]">Due date</TableHead>
-                                            <TableHead className="w-[15%]">Priority</TableHead>
-                                            <TableHead className="w-[15%]">Status</TableHead>
-                                            <TableHead className="w-[5%]">Comments</TableHead>
-                                            <TableHead className="w-[5%]"></TableHead>
-                                          </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {tasks.map(task => (
-                                                <TableRow key={task.id}>
-                                                    <TableCell className="font-medium align-top">{task.title}</TableCell>
-                                                    <TableCell className="align-top">
-                                                        <AssigneePopover task={task} employees={employees} onUpdate={onUpdateAssignee} />
-                                                    </TableCell>
-                                                    <TableCell className="align-top">
-                                                        <DueDatePopover task={task} onUpdate={onUpdateDueDate} />
-                                                    </TableCell>
-                                                    <TableCell className="align-top">
-                                                        <PriorityPopover task={task} onUpdate={onUpdatePriority} />
-                                                    </TableCell>
-                                                    <TableCell className="align-top">
-                                                        <Badge variant="outline" className={`${statusColors[task.status]} text-white border-none mt-1`}>
-                                                            {task.status.replace('_', ' ')}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="align-top">
-                                                        <CommentPopover task={task} onAddComment={(content) => onAddComment(task.id, content)} />
-                                                    </TableCell>
-                                                    <TableCell className="align-top">
-                                                        <MoreActionsMenu task={task} onDelete={onDeleteTask} />
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                            {tasks.length === 0 && (
-                                                <TableRow>
-                                                    <TableCell colSpan={7} className="text-center text-muted-foreground h-24">
-                                                        No tasks in this status
-                                                    </TableCell>
-                                                </TableRow>
-                                            )}
-                                        </TableBody>
-                                      </Table>
-                                    </div>
-                                </AccordionContent>
-                            </AccordionItem>
+                           <TaskStatusGroup 
+                                key={status}
+                                status={status}
+                                tasks={tasks}
+                                employees={employees}
+                                onAddTask={(status) => onAddTask(goal.id, status)}
+                                onUpdateAssignee={onUpdateAssignee}
+                                onUpdatePriority={onUpdatePriority}
+                                onUpdateDueDate={onUpdateDueDate}
+                                onAddComment={onAddComment}
+                                onDeleteTask={onDeleteTask}
+                           />
                         );
                     })}
                 </Accordion>
@@ -490,236 +324,6 @@ function CollapsibleGoal({
             <div className="h-px bg-border my-8" />
         </div>
     );
-}
-
-
-function DueDatePopover({ task, onUpdate }: { task: Task, onUpdate: (tid: number, date: string) => void }) {
-    const [date, setDate] = useState(task.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '');
-    const [open, setOpen] = useState(false);
-
-    const handleUpdate = () => {
-        onUpdate(task.id, date);
-        setOpen(false);
-    };
-
-    return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <div className="flex items-center gap-2 text-muted-foreground mt-1 cursor-pointer hover:bg-muted p-1 rounded-md w-fit">
-                    <CalendarIcon className="h-4 w-4" />
-                    {task.dueDate ? format(new Date(task.dueDate), 'MMM d') : '-'}
-                </div>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-4">
-                <div className="flex gap-2">
-                    <Input 
-                        type="date" 
-                        value={date} 
-                        onChange={(e) => setDate(e.target.value)} 
-                    />
-                    <Button size="sm" onClick={handleUpdate}>Save</Button>
-                </div>
-            </PopoverContent>
-        </Popover>
-    )
-}
-
-function AssigneePopover({ task, employees, onUpdate }: { task: Task, employees: User[], onUpdate: (tid: number, uid: number) => void }) {
-    const [open, setOpen] = useState(false);
-
-    const handleSelect = (uid: number) => {
-        onUpdate(task.id, uid);
-        setOpen(false);
-    }
-
-    return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <div className="cursor-pointer hover:bg-muted rounded-full p-1 inline-flex">
-                    {task.assignee ? (
-                         <div className="flex items-center gap-2">
-                             <Avatar className="h-8 w-8">
-                                <AvatarFallback className="bg-primary/10 text-primary">{task.assignee.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm">{task.assignee.name}</span>
-                        </div>
-                    ) : (
-                        <span className="text-muted-foreground text-sm italic px-2">Unassigned</span>
-                    )}
-                </div>
-            </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-0" align="start">
-                <div className="p-2 space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground px-2 mb-2">Assign to...</p>
-                    {employees.map(emp => (
-                        <div 
-                            key={emp.id} 
-                            className={cn(
-                                "flex items-center gap-2 p-2 rounded-md hover:bg-accent cursor-pointer text-sm",
-                                task.assignee?.id === emp.id && "bg-accent"
-                            )}
-                            onClick={() => handleSelect(emp.id)}
-                        >
-                             <Avatar className="h-6 w-6">
-                                <AvatarFallback>{emp.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <span>{emp.name}</span>
-                        </div>
-                    ))}
-                </div>
-            </PopoverContent>
-        </Popover>
-    )
-}
-
-function PriorityPopover({ task, onUpdate }: { task: Task, onUpdate: (tid: number, p: string) => void }) {
-    const [open, setOpen] = useState(false);
-
-    const handleSelect = (priority: string) => {
-        onUpdate(task.id, priority);
-        setOpen(false);
-    }
-
-    return (
-        <Popover open={open} onOpenChange={setOpen}>
-             <PopoverTrigger asChild>
-                <div className="cursor-pointer hover:bg-muted rounded-md p-1 inline-flex items-center gap-2 h-8">
-                    {priorityIcons[task.priority]}
-                    <span className="text-sm capitalize">{task.priority.toLowerCase()}</span>
-                </div>
-            </PopoverTrigger>
-            <PopoverContent className="w-[150px] p-0" align="start">
-                <div className="p-1">
-                    {Object.keys(priorityIcons).map((p) => (
-                         <div 
-                            key={p} 
-                            className={cn(
-                                "flex items-center gap-2 p-2 rounded-md hover:bg-accent cursor-pointer text-sm",
-                                task.priority === p && "bg-accent"
-                            )}
-                            onClick={() => handleSelect(p)}
-                        >
-                            {priorityIcons[p as keyof typeof priorityIcons]}
-                            <span className="capitalize">{p.toLowerCase()}</span>
-                        </div>
-                    ))}
-                </div>
-            </PopoverContent>
-        </Popover>
-    )
-}
-
-function CommentPopover({ task, onAddComment }: { task: Task, onAddComment: (c: string) => void }) {
-    const [comment, setComment] = useState('');
-    const [open, setOpen] = useState(false);
-
-    const handleSubmit = () => {
-        if (!comment) return;
-        onAddComment(comment);
-        setComment('');
-    };
-
-    return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <div className="flex items-center gap-1 cursor-pointer hover:bg-muted p-1 rounded-md w-fit transition-colors">
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    {task.comments.length > 0 && (
-                        <span className="text-xs text-muted-foreground font-medium">{task.comments.length}</span>
-                    )}
-                    {task.comments.length === 0 && (
-                        <Plus className="h-3 w-3 text-muted-foreground" />
-                    )}
-                </div>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-                <div className="space-y-4">
-                    <h4 className="font-medium leading-none">Comments</h4>
-                    <div className="max-h-[200px] overflow-y-auto space-y-3">
-                        {task.comments.map(c => (
-                            <div key={c.id} className="text-sm bg-muted/50 p-2 rounded-md">
-                                <div className="flex justify-between items-center mb-1">
-                                    <span className="font-semibold text-xs text-primary">{c.user.name}</span>
-                                    <span className="text-[10px] text-muted-foreground">{new Date(c.createdAt).toLocaleDateString()}</span>
-                                </div>
-                                <p className="text-gray-700">{c.content}</p>
-                            </div>
-                        ))}
-                        {task.comments.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No comments yet.</p>}
-                    </div>
-                    <div className="flex gap-2">
-                        <Input 
-                            placeholder="Add comment..." 
-                            value={comment} 
-                            onChange={e => setComment(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                        />
-                        <Button size="icon" onClick={handleSubmit}><Plus className="h-4 w-4" /></Button>
-                    </div>
-                </div>
-            </PopoverContent>
-        </Popover>
-    )
-}
-
-function MoreActionsMenu({ task, onDelete }: { task: Task, onDelete: (tid: number) => void }) {
-    const [open, setOpen] = useState(false);
-    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-    const [showHistoryDialog, setShowHistoryDialog] = useState(false);
-
-    return (
-        <>
-            <DropdownMenu open={open} onOpenChange={setOpen}>
-                <DropdownMenuTrigger asChild>
-                    <div className="group h-8 w-8 flex items-center justify-center rounded-md hover:bg-muted cursor-pointer transition-colors">
-                        <MoreHorizontal className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
-                    </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[160px]">
-                    <DropdownMenuItem 
-                        className="cursor-pointer"
-                        onSelect={() => setShowHistoryDialog(true)}
-                    >
-                        <Clock className="mr-2 h-4 w-4" />
-                        <span>History</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                        className="text-red-600 focus:text-red-600 cursor-pointer"
-                        onSelect={() => setShowDeleteDialog(true)}
-                    >
-                        Delete Task
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-
-            <TaskHistoryDialog task={task} open={showHistoryDialog} onOpenChange={setShowHistoryDialog} />
-
-            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the task
-                            <span className="font-medium text-foreground"> "{task.title}" </span>
-                            and remove it from our servers.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction 
-                            className="bg-red-600 hover:bg-red-700"
-                            onClick={() => {
-                                onDelete(task.id);
-                                setShowDeleteDialog(false);
-                            }}
-                        >
-                            Delete
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </>
-    )
 }
 
 function GoalActionsMenu({ goal, onDelete }: { goal: Goal, onDelete: (gid: number) => void }) {
@@ -773,73 +377,5 @@ function GoalActionsMenu({ goal, onDelete }: { goal: Goal, onDelete: (gid: numbe
                 </AlertDialogContent>
             </AlertDialog>
         </>
-    )
-}
-
-function TaskHistoryDialog({ task, open, onOpenChange }: { task: Task, open: boolean, onOpenChange: (open: boolean) => void }) {
-    const [history, setHistory] = useState<TaskHistory[]>([]);
-    const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        if (open) {
-            setLoading(true);
-            axios.get(`http://localhost:3000/api/tasks/${task.id}/history`)
-                .then(res => setHistory(res.data))
-                .catch(console.error)
-                .finally(() => setLoading(false));
-        }
-    }, [open, task.id]);
-
-    const formatAction = (action: string) => {
-        switch(action) {
-            case 'UPDATED_STATUS': return 'changed status';
-            case 'UPDATED_PRIORITY': return 'changed priority';
-            case 'UPDATED_DUE_DATE': return 'changed due date';
-            case 'UPDATED_ASSIGNEE': return 'updated assignee';
-            default: return action.toLowerCase().replace('_', ' ');
-        }
-    }
-
-    const formatValue = (val: string | null, action: string) => {
-        if (!val) return 'none';
-        if (action === 'UPDATED_DUE_DATE') return new Date(val).toLocaleDateString();
-        return val;
-    }
-
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-md">
-                <DialogHeader>
-                    <DialogTitle>History: {task.title}</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-                    {loading ? <p className="text-center text-muted-foreground">Loading history...</p> : (
-                        <div className="relative border-l border-muted ml-2 space-y-6 pb-2">
-                             {history.map((h) => (
-                                <div key={h.id} className="ml-4 relative">
-                                    <div className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-primary" />
-                                    <div className="flex flex-col gap-1">
-                                        <div className="text-sm font-medium">
-                                            <span className="font-bold">{h.user.name}</span> {formatAction(h.action)}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {new Date(h.createdAt).toLocaleString()}
-                                        </div>
-                                        <div className="text-sm text-gray-600 bg-muted/50 p-2 rounded-md mt-1">
-                                            <div className="flex gap-2 items-center">
-                                                <span className="line-through text-red-400 text-xs">{formatValue(h.oldValue, h.action)}</span>
-                                                <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                                                <span className="font-medium text-green-600 text-xs">{formatValue(h.newValue, h.action)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                             ))}
-                             {history.length === 0 && <p className="text-sm text-muted-foreground ml-4">No history recorded yet.</p>}
-                        </div>
-                    )}
-                </div>
-            </DialogContent>
-        </Dialog>
     )
 }

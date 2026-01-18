@@ -117,3 +117,38 @@ export const deleteGoal = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ message: 'Error deleting goal' });
     }
 }
+
+export const getTeamOverview = async (req: AuthRequest, res: Response) => {
+    if (!req.user || !req.user.divisionId) {
+        return res.status(400).json({ message: 'User not belonging to a division' });
+    }
+
+    try {
+        const employees = await prisma.user.findMany({
+            where: {
+                divisionId: req.user.divisionId,
+                role: 'EMPLOYEE'
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                assignedTasks: {
+                    include: {
+                        goal: { select: { title: true } },
+                        assignee: { select: { id: true, name: true, email: true } },
+                        comments: {
+                            include: { user: { select: { id: true, name: true } } },
+                            orderBy: { createdAt: 'desc' }
+                        }
+                    },
+                    orderBy: { createdAt: 'desc' }
+                }
+            }
+        });
+        res.json(employees);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching team overview' });
+    }
+}
