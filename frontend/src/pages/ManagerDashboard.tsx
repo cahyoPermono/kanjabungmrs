@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Plus, MessageSquare, MoreHorizontal, Calendar as CalendarIcon, Flag, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, MessageSquare, MoreHorizontal, Calendar as CalendarIcon, Flag, ChevronDown, ChevronRight, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   Dialog,
@@ -66,6 +66,17 @@ interface Comment {
     content: string;
     userId: number;
     user: User;
+    createdAt: string;
+}
+
+interface TaskHistory {
+    id: number;
+    taskId: number;
+    userId: number;
+    user: { name: string };
+    action: string;
+    oldValue: string | null;
+    newValue: string | null;
     createdAt: string;
 }
 
@@ -255,13 +266,17 @@ export default function ManagerDashboard() {
 
     if (loading) return <div className="p-8">Loading...</div>;
 
+    const filteredGoals = goals.filter(goal => 
+        goal.title.toLowerCase().includes(search.toLowerCase())
+    );
+
     return (
         <div className="p-8 space-y-8">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold tracking-tight">Home</h1>
                 <div className="flex gap-4">
                     <Input 
-                        placeholder="Search..." 
+                        placeholder="Search goals..." 
                         className="w-[200px]" 
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -271,7 +286,7 @@ export default function ManagerDashboard() {
             </div>
 
             <div className="space-y-6">
-                {goals.map((goal) => (
+                {filteredGoals.map((goal) => (
                     <CollapsibleGoal 
                         key={goal.id} 
                         goal={goal} 
@@ -650,6 +665,7 @@ function CommentPopover({ task, onAddComment }: { task: Task, onAddComment: (c: 
 function MoreActionsMenu({ task, onDelete }: { task: Task, onDelete: (tid: number) => void }) {
     const [open, setOpen] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [showHistoryDialog, setShowHistoryDialog] = useState(false);
 
     return (
         <>
@@ -661,6 +677,13 @@ function MoreActionsMenu({ task, onDelete }: { task: Task, onDelete: (tid: numbe
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[160px]">
                     <DropdownMenuItem 
+                        className="cursor-pointer"
+                        onSelect={() => setShowHistoryDialog(true)}
+                    >
+                        <Clock className="mr-2 h-4 w-4" />
+                        <span>History</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
                         className="text-red-600 focus:text-red-600 cursor-pointer"
                         onSelect={() => setShowDeleteDialog(true)}
                     >
@@ -668,6 +691,8 @@ function MoreActionsMenu({ task, onDelete }: { task: Task, onDelete: (tid: numbe
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            <TaskHistoryDialog task={task} open={showHistoryDialog} onOpenChange={setShowHistoryDialog} />
 
             <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <AlertDialogContent>
@@ -748,5 +773,73 @@ function GoalActionsMenu({ goal, onDelete }: { goal: Goal, onDelete: (gid: numbe
                 </AlertDialogContent>
             </AlertDialog>
         </>
+    )
+}
+
+function TaskHistoryDialog({ task, open, onOpenChange }: { task: Task, open: boolean, onOpenChange: (open: boolean) => void }) {
+    const [history, setHistory] = useState<TaskHistory[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (open) {
+            setLoading(true);
+            axios.get(`http://localhost:3000/api/tasks/${task.id}/history`)
+                .then(res => setHistory(res.data))
+                .catch(console.error)
+                .finally(() => setLoading(false));
+        }
+    }, [open, task.id]);
+
+    const formatAction = (action: string) => {
+        switch(action) {
+            case 'UPDATED_STATUS': return 'changed status';
+            case 'UPDATED_PRIORITY': return 'changed priority';
+            case 'UPDATED_DUE_DATE': return 'changed due date';
+            case 'UPDATED_ASSIGNEE': return 'updated assignee';
+            default: return action.toLowerCase().replace('_', ' ');
+        }
+    }
+
+    const formatValue = (val: string | null, action: string) => {
+        if (!val) return 'none';
+        if (action === 'UPDATED_DUE_DATE') return new Date(val).toLocaleDateString();
+        return val;
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>History: {task.title}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                    {loading ? <p className="text-center text-muted-foreground">Loading history...</p> : (
+                        <div className="relative border-l border-muted ml-2 space-y-6 pb-2">
+                             {history.map((h) => (
+                                <div key={h.id} className="ml-4 relative">
+                                    <div className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-primary" />
+                                    <div className="flex flex-col gap-1">
+                                        <div className="text-sm font-medium">
+                                            <span className="font-bold">{h.user.name}</span> {formatAction(h.action)}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                            {new Date(h.createdAt).toLocaleString()}
+                                        </div>
+                                        <div className="text-sm text-gray-600 bg-muted/50 p-2 rounded-md mt-1">
+                                            <div className="flex gap-2 items-center">
+                                                <span className="line-through text-red-400 text-xs">{formatValue(h.oldValue, h.action)}</span>
+                                                <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                                                <span className="font-medium text-green-600 text-xs">{formatValue(h.newValue, h.action)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                             ))}
+                             {history.length === 0 && <p className="text-sm text-muted-foreground ml-4">No history recorded yet.</p>}
+                        </div>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
     )
 }

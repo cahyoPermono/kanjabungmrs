@@ -107,9 +107,68 @@ export const updateTask = async (req: AuthRequest, res: Response) => {
 
         // Check permission. Manager or Assignee.
         // Also allow if Manager is reassigning (assigneeId provided)
+        // Check permission. Manager or Assignee.
+        // Also allow if Manager is reassigning (assigneeId provided)
         if (req.user?.role !== 'MANAGER' && task.assigneeId !== req.user?.id) {
              return res.status(403).json({ message: 'Not authorized to update this task' });
         }
+
+        if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+        // History Logging
+        const historyEntries = [];
+
+        if (status && status !== task.status) {
+            historyEntries.push({
+                taskId: task.id,
+                userId: req.user.id,
+                action: 'UPDATED_STATUS',
+                oldValue: task.status,
+                newValue: status
+            });
+        }
+
+        if (priority && priority !== task.priority) {
+            historyEntries.push({
+                taskId: task.id,
+                userId: req.user.id,
+                action: 'UPDATED_PRIORITY',
+                oldValue: task.priority,
+                newValue: priority
+            });
+        }
+
+        if (req.body.dueDate !== undefined) {
+            const newDate = req.body.dueDate ? new Date(req.body.dueDate).toISOString() : null;
+            const oldDate = task.dueDate ? task.dueDate.toISOString() : null;
+            // distinct check
+            if (newDate !== oldDate) {
+                 historyEntries.push({
+                    taskId: task.id,
+                    userId: req.user.id,
+                    action: 'UPDATED_DUE_DATE',
+                    oldValue: oldDate,
+                    newValue: newDate
+                });
+            }
+        }
+
+        if (assigneeId !== undefined) {
+             const newAssigneeId = assigneeId ? Number(assigneeId) : null;
+             if (newAssigneeId !== task.assigneeId) {
+                  historyEntries.push({
+                     taskId: task.id,
+                     userId: req.user.id,
+                     action: 'UPDATED_ASSIGNEE',
+                     oldValue: task.assigneeId ? task.assigneeId.toString() : null,
+                     newValue: newAssigneeId ? newAssigneeId.toString() : null
+                 });
+             }
+         }
+
+         if (historyEntries.length > 0) {
+             await prisma.taskHistory.createMany({ data: historyEntries });
+         }
 
         const data: any = {
             status,
@@ -180,5 +239,20 @@ export const deleteTask = async (req: AuthRequest, res: Response) => {
         res.status(204).send();
     } catch (error) {
         res.status(500).json({ message: 'Error deleting task' });
+    }
+}
+
+export const getTaskHistory = async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    try {
+        const history = await prisma.taskHistory.findMany({
+            where: { taskId: Number(id) },
+            include: { user: { select: { name: true } } },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(history);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching history' });
     }
 }
