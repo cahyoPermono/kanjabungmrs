@@ -101,7 +101,7 @@ export const createTask = async (req: AuthRequest, res: Response) => {
                 priority: priority || 'MEDIUM',
                 dueDate: dueDate ? new Date(dueDate) : null,
                 goalId: Number(goalId),
-                assigneeId: assigneeId ? Number(assigneeId) : req.user.id // Assign to specific user or self
+                assigneeId: assigneeId ? Number(assigneeId) : null // Default to null (unassigned) if not specified
             }
         });
         res.status(201).json(task);
@@ -122,9 +122,7 @@ export const updateTask = async (req: AuthRequest, res: Response) => {
         if (!task) return res.status(404).json({ message: 'Task not found' });
 
         // Check permission. Manager or Assignee.
-        // Also allow if Manager is reassigning (assigneeId provided)
-        // Check permission. Manager or Assignee.
-        // Also allow if Manager is reassigning (assigneeId provided)
+        // Manager can update anything (including status). Employee can update status.
         if (req.user?.role !== 'MANAGER' && task.assigneeId !== req.user?.id) {
              return res.status(403).json({ message: 'Not authorized to update this task' });
         }
@@ -193,7 +191,9 @@ export const updateTask = async (req: AuthRequest, res: Response) => {
         };
 
         if (assigneeId !== undefined) {
-            data.assigneeId = assigneeId ? Number(assigneeId) : null;
+            // Frontend sends 0 or null for unassigned? 
+            // If string "0", treat as null.
+            data.assigneeId = (assigneeId && Number(assigneeId) > 0) ? Number(assigneeId) : null;
         }
 
         const updatedTask = await prisma.task.update({

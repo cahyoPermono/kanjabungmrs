@@ -7,13 +7,14 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Badge } from '@/components/ui/badge';
-import { Task, User, AssigneePopover, DueDatePopover, PriorityPopover, CommentPopover, MoreActionsMenu } from './TaskActions';
+import { Task, User, AssigneePopover, DueDatePopover, PriorityPopover, CommentPopover, MoreActionsMenu, StatusPopover } from './TaskActions';
 
 interface TaskTableProps {
     tasks: Task[];
     employees: User[];
     onUpdateAssignee: (tid: number, uid: number) => void;
     onUpdatePriority: (tid: number, p: string) => void;
+    onUpdateStatus: (tid: number, s: string) => void;
     onUpdateDueDate: (tid: number, d: string) => void;
     onAddComment: (tid: number, c: string) => void;
     onDeleteTask: (tid: number) => void;
@@ -25,7 +26,7 @@ const statusColors = {
     COMPLETED: "bg-green-500"
 };
 
-export function TaskTable({ tasks, employees, onUpdateAssignee, onUpdatePriority, onUpdateDueDate, onAddComment, onDeleteTask }: TaskTableProps) {
+export function TaskTable({ tasks, employees, onUpdateAssignee, onUpdatePriority, onUpdateStatus, onUpdateDueDate, onAddComment, onDeleteTask }: TaskTableProps) {
     return (
         <div className="rounded-md border bg-card">
             <Table>
@@ -57,9 +58,7 @@ export function TaskTable({ tasks, employees, onUpdateAssignee, onUpdatePriority
                                 <PriorityPopover task={task} onUpdate={onUpdatePriority} />
                             </TableCell>
                             <TableCell className="align-top">
-                                <Badge variant="outline" className={`${statusColors[task.status as keyof typeof statusColors]} text-white border-none mt-1`}>
-                                    {task.status.replace('_', ' ')}
-                                </Badge>
+                                <StatusPopover task={task} onUpdate={onUpdateStatus} />
                             </TableCell>
                             <TableCell className="align-top">
                                 <CommentPopover task={task} onAddComment={(content) => onAddComment(task.id, content)} />

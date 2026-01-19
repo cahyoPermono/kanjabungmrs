@@ -7,6 +7,7 @@ import Teams from './pages/Teams';
 import Timesheet from './pages/Timesheet';
 import Tasks from './pages/Tasks';
 import Reports from './pages/Reports';
+import Profile from './pages/Profile';
 import { useAuthStore } from './store/authStore';
 import { DashboardLayout } from './components/DashboardLayout';
 import { JSX } from 'react';
@@ -59,6 +60,11 @@ function App() {
             <Route path="/timesheet" element={
                 <PrivateRoute roles={['MANAGER', 'EMPLOYEE']}>
                     <Timesheet />
+                </PrivateRoute>
+            } />
+            <Route path="/profile" element={
+                <PrivateRoute roles={['ADMIN', 'MANAGER', 'EMPLOYEE']}>
+                    <Profile />
                 </PrivateRoute>
             } />
         </Route>

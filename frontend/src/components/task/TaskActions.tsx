@@ -136,6 +136,18 @@ export function AssigneePopover({ task, employees, onUpdate }: { task: Task, emp
             <PopoverContent className="w-[200px] p-0" align="start">
                 <div className="p-2 space-y-1">
                     <p className="text-xs font-medium text-muted-foreground px-2 mb-2">Assign to...</p>
+                    <div 
+                        className={cn(
+                            "flex items-center gap-2 p-2 rounded-md hover:bg-accent cursor-pointer text-sm",
+                            !task.assignee && "bg-accent"
+                        )}
+                        onClick={() => handleSelect(0)} // 0 triggers unassigning
+                    >
+                        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
+                            <span className="text-xs text-muted-foreground">-</span>
+                        </div>
+                        <span>Unassigned</span>
+                    </div>
                     {employees.map(emp => (
                         <div 
                             key={emp.id} 
@@ -241,6 +253,53 @@ export function CommentPopover({ task, onAddComment }: { task: Task, onAddCommen
                         />
                         <Button size="icon" onClick={handleSubmit}><Plus className="h-4 w-4" /></Button>
                     </div>
+                </div>
+            </PopoverContent>
+        </Popover>
+    )
+}
+
+export function StatusPopover({ task, onUpdate }: { task: Task, onUpdate: (tid: number, s: string) => void }) {
+    const [open, setOpen] = useState(false);
+    
+    // Using string matching for colors from elsewhere or simple badges
+    const statuses = ['TODO', 'IN_PROGRESS', 'COMPLETED'];
+
+    const handleSelect = (status: string) => {
+        onUpdate(task.id, status);
+        setOpen(false);
+    }
+
+    const statusColors: Record<string, string> = {
+        TODO: "bg-slate-500",
+        IN_PROGRESS: "bg-blue-500",
+        COMPLETED: "bg-green-500"
+    };
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+             <PopoverTrigger asChild>
+                <div className="cursor-pointer hover:opacity-80 transition-opacity">
+                    <Badge variant="outline" className={`${statusColors[task.status]} text-white border-none mt-1`}>
+                        {task.status.replace('_', ' ')}
+                    </Badge>
+                </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-[160px] p-0" align="start">
+                <div className="p-1">
+                    {statuses.map((s) => (
+                         <div 
+                            key={s} 
+                            className={cn(
+                                "flex items-center gap-2 p-2 rounded-md hover:bg-accent cursor-pointer text-sm",
+                                task.status === s && "bg-accent"
+                            )}
+                            onClick={() => handleSelect(s)}
+                        >
+                            <div className={`w-2 h-2 rounded-full ${statusColors[s]}`} />
+                            <span className="capitalize">{s.replace('_', ' ').toLowerCase()}</span>
+                        </div>
+                    ))}
                 </div>
             </PopoverContent>
         </Popover>

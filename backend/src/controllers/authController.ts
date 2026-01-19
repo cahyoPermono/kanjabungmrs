@@ -74,3 +74,31 @@ export const register = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Internal server error.' });
     }
 }
+
+export const updatePassword = async (req: Request, res: Response) => {
+    // req.user is set by authenticateToken middleware
+    const userId = (req as any).user?.id;
+    const { newPassword } = req.body;
+
+    if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ message: 'Password must be at least 6 characters long.' });
+    }
+
+    try {
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword }
+        });
+
+        res.json({ message: 'Password updated successfully.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error updating password.' });
+    }
+};

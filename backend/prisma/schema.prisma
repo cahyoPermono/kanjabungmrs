@@ -22,6 +22,7 @@ enum Priority {
   LOW
   MEDIUM
   HIGH
+  URGENT
 }
 
 model User {
@@ -53,6 +54,7 @@ model Division {
 
 model Goal {
   id          Int      @id @default(autoincrement())
+  code        String   @unique
   title       String
   description String?
   startDate   DateTime?
@@ -75,7 +77,7 @@ model Task {
   title       String
   description String?
   status      Status   @default(TODO)
-  priority    Priority @default(MEDIUM)
+  priority    Priority? 
   dueDate     DateTime?
   
   goalId      Int

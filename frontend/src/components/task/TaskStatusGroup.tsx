@@ -16,6 +16,7 @@ interface TaskStatusGroupProps {
     onAddTask?: (status: string) => void;
     onUpdateAssignee: (tid: number, uid: number) => void;
     onUpdatePriority: (tid: number, p: string) => void;
+    onUpdateStatus: (tid: number, s: string) => void;
     onUpdateDueDate: (tid: number, d: string) => void;
     onAddComment: (tid: number, c: string) => void;
     onDeleteTask: (tid: number) => void;
@@ -34,6 +35,7 @@ export function TaskStatusGroup({
     onAddTask,
     onUpdateAssignee,
     onUpdatePriority,
+    onUpdateStatus,
     onUpdateDueDate,
     onAddComment,
     onDeleteTask
@@ -62,6 +64,7 @@ export function TaskStatusGroup({
                     employees={employees}
                     onUpdateAssignee={onUpdateAssignee}
                     onUpdatePriority={onUpdatePriority}
+                    onUpdateStatus={onUpdateStatus}
                     onUpdateDueDate={onUpdateDueDate}
                     onAddComment={onAddComment}
                     onDeleteTask={onDeleteTask}

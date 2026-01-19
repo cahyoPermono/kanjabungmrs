@@ -47,10 +47,20 @@ export const useTaskOperations = (refreshData: () => void) => {
         }
     }
 
+    const updateStatus = async (taskId: number, status: string) => {
+        try {
+            await axios.put(`http://localhost:3000/api/tasks/${taskId}`, { status });
+            refreshData();
+        } catch (error) {
+             console.error(error);
+        }
+    }
+
     return {
         updateAssignee,
         updatePriority,
         updateDueDate,
+        updateStatus,
         addComment,
         deleteTask
     };

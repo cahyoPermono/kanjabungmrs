@@ -51,7 +51,7 @@ export const getGoals = async (req: AuthRequest, res: Response) => {
 
 export const createGoal = async (req: AuthRequest, res: Response) => {
     // Only Manager (and maybe Admin)
-    const { title, description, startDate, endDate } = req.body;
+    const { title, description, code, startDate, endDate } = req.body;
     
     if (!req.user || !req.user.divisionId) {
         return res.status(400).json({ message: 'User not belonging to a division' });
@@ -62,6 +62,7 @@ export const createGoal = async (req: AuthRequest, res: Response) => {
             data: {
                 title,
                 description,
+                code,
                 startDate: startDate ? new Date(startDate) : null,
                 endDate: endDate ? new Date(endDate) : null,
                 divisionId: req.user.divisionId,
@@ -69,9 +70,34 @@ export const createGoal = async (req: AuthRequest, res: Response) => {
             }
         });
         res.status(201).json(goal);
-    } catch (error) {
+    } catch (error: any) {
+        if (error.code === 'P2002') { // Unique constraint violation
+            return res.status(400).json({ message: 'Goal code must be unique' });
+        }
         console.error(error);
         res.status(500).json({ message: 'Error creating goal' });
+    }
+}
+
+export const updateGoal = async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const { title, description } = req.body; // Can only edit title and description
+
+    if (!req.user || req.user.role !== 'MANAGER') {
+        return res.status(403).json({ message: 'Only managers can update goals' });
+    }
+
+    if (!id || typeof id !== 'string') return res.status(400).json({ message: 'Invalid goal ID' });
+
+    try {
+        const goal = await prisma.goal.update({
+            where: { id: parseInt(id) },
+            data: { title, description }
+        });
+        res.json(goal);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error updating goal' });
     }
 }
 

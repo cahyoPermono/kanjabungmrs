@@ -77,7 +77,7 @@ export default function Teams() {
         fetchGoals();
     }, []);
 
-    const { updateAssignee, updatePriority, updateDueDate, addComment, deleteTask } = useTaskOperations(fetchTeamData);
+    const { updateAssignee, updatePriority, updateDueDate, updateStatus, addComment, deleteTask } = useTaskOperations(fetchTeamData);
 
     const handleCreateTask = async () => {
         if (!selectedGoalId || !taskTitle || !selectedEmployeeId) return;
@@ -146,7 +146,7 @@ export default function Teams() {
                         employee={employee} 
                         allEmployees={allEmployeesList}
                         onAddTask={openAddTask}
-                        actions={{ updateAssignee, updatePriority, updateDueDate, addComment, deleteTask }}
+                        actions={{ updateAssignee, updatePriority, updateDueDate, updateStatus, addComment, deleteTask }}
                     />
                 ))}
             </div>
@@ -258,6 +258,7 @@ function EmployeeSection({
                                 onAddTask={(status) => onAddTask(employee.id, status)}
                                 onUpdateAssignee={actions.updateAssignee}
                                 onUpdatePriority={actions.updatePriority}
+                                onUpdateStatus={actions.updateStatus}
                                 onUpdateDueDate={actions.updateDueDate}
                                 onAddComment={actions.addComment}
                                 onDeleteTask={actions.deleteTask}
