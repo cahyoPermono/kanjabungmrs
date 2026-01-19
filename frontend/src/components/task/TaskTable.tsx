@@ -6,9 +6,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { Badge } from '@/components/ui/badge';
 import { Task, User, AssigneePopover, DueDatePopover, PriorityPopover, CommentPopover, MoreActionsMenu, StatusPopover } from './TaskActions';
-
 interface TaskTableProps {
     tasks: Task[];
     employees: User[];
@@ -20,16 +18,10 @@ interface TaskTableProps {
     onDeleteTask: (tid: number) => void;
 }
 
-const statusColors = {
-    TODO: "bg-slate-500",
-    IN_PROGRESS: "bg-blue-500",
-    COMPLETED: "bg-green-500"
-};
-
 export function TaskTable({ tasks, employees, onUpdateAssignee, onUpdatePriority, onUpdateStatus, onUpdateDueDate, onAddComment, onDeleteTask }: TaskTableProps) {
     return (
-        <div className="rounded-md border bg-card">
-            <Table>
+        <div className="rounded-md border bg-card overflow-x-auto">
+            <Table className="min-w-[800px]">
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-[30%]">Name</TableHead>

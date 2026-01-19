@@ -12,7 +12,7 @@ import {
     LogOut 
 } from 'lucide-react';
 
-export function Sidebar() {
+export function Sidebar({ className }: { className?: string }) {
     const location = useLocation();
     const { logout, user } = useAuthStore();
 
@@ -30,12 +30,12 @@ export function Sidebar() {
     const filteredLinks = links.filter(link => link.roles.includes(user?.role || ''));
 
     return (
-        <div className="flex flex-col h-screen w-64 bg-background border-r">
+        <div className={cn("flex flex-col h-full w-64 bg-background border-r", className)}>
             <div className="p-6 border-b flex justify-center">
                 <img src="/logo.png" alt="KAN Jabung" className="h-16 object-contain" />
             </div>
             
-            <nav className="flex-1 px-4 space-y-2">
+            <nav className="flex-1 px-4 space-y-2 py-4">
                 {filteredLinks.map((link) => {
                     const Icon = link.icon;
                     const isActive = location.pathname === link.href;
@@ -46,22 +46,22 @@ export function Sidebar() {
                                 className={cn("w-full justify-start gap-3", isActive && "bg-secondary")}
                             >
                                 <Icon className="h-4 w-4" />
-                                {link.label}
+                                <span className="truncate">{link.label}</span>
                             </Button>
                         </Link>
                     )
                 })}
             </nav>
 
-            <div className="p-4 border-t">
+            <div className="p-4 border-t mt-auto">
                  <Link to="/profile" className="block">
                      <div className="flex items-center gap-3 mb-4 px-2 py-2 rounded-md hover:bg-accent cursor-pointer transition-colors">
-                        <div className="bg-primary/10 p-2 rounded-full">
+                        <div className="bg-primary/10 p-2 rounded-full shrink-0">
                             <User className="h-4 w-4 text-primary" />
                         </div>
-                        <div className="text-sm">
-                            <p className="font-medium">{user?.name}</p>
-                            <p className="text-xs text-muted-foreground">{user?.email}</p>
+                        <div className="text-sm overflow-hidden">
+                            <p className="font-medium truncate">{user?.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                             <p className="text-xs text-primary font-bold">{user?.role}</p>
                         </div>
                     </div>

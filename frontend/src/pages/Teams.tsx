@@ -133,7 +133,7 @@ export default function Teams() {
                             placeholder="Filter" 
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="pl-8 w-[200px] bg-white"
+                            className="pl-8 w-full md:w-[200px] bg-white"
                         />
                     </div>
                 </div>
@@ -178,7 +178,7 @@ export default function Teams() {
                             <Input value={taskTitle} onChange={e => setTaskTitle(e.target.value)} />
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="grid gap-2">
                                 <Label>Priority</Label>
                                 <Select value={taskPriority} onValueChange={setTaskPriority}>

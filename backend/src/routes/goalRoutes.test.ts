@@ -40,6 +40,7 @@ describe('Goal API', () => {
 
     it('should create a goal', async () => {
         const goalData = {
+            code: 'G001',
             title: 'New Goal',
             description: 'Desc',
             startDate: '2024-01-01',

@@ -58,11 +58,11 @@ export default function Reports() {
     if (!data) return <div className="p-8">No data available</div>;
 
     return (
-        <div className="p-8 space-y-8 bg-gray-50/50 min-h-screen">
+        <div className="p-4 md:p-8 space-y-8 bg-gray-50/50 min-h-screen">
             <h1 className="text-3xl font-bold tracking-tight text-gray-900">Manager Reports</h1>
 
             {/* Overview Cards */}
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Goals</CardTitle>
@@ -95,9 +95,9 @@ export default function Reports() {
                 </Card>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
                 {/* Task Status Distribution */}
-                <Card className="col-span-3">
+                <Card className="col-span-1 lg:col-span-3">
                     <CardHeader>
                         <CardTitle>Task Status Overview</CardTitle>
                         <CardDescription>Distribution of tasks by current status</CardDescription>
@@ -127,7 +127,7 @@ export default function Reports() {
                 </Card>
 
                 {/* Employee Performance */}
-                <Card className="col-span-4">
+                <Card className="col-span-1 lg:col-span-4">
                     <CardHeader>
                         <CardTitle>Employee Performance</CardTitle>
                         <CardDescription>Number of tasks completed per employee</CardDescription>

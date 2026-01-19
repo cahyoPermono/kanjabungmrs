@@ -122,7 +122,7 @@ export default function Tasks() {
     return (
         <div className="flex h-screen bg-gray-50/30">
             {/* Main Content (No Sidebar) */}
-            <div className="flex-1 p-8 overflow-auto">
+            <div className="flex-1 p-4 md:p-8 overflow-auto">
                 <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
                          <div className="bg-primary/10 p-3 rounded-lg">
@@ -187,7 +187,7 @@ export default function Tasks() {
                             <Input value={taskTitle} onChange={e => setTaskTitle(e.target.value)} />
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <div className="grid gap-2">
                                 <Label>Assignee</Label>
                                 <Select value={taskAssigneeId} onValueChange={setTaskAssigneeId}>
