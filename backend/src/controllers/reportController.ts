@@ -97,3 +97,73 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ message: 'Error fetching report stats' });
     }
 }
+
+export const getEmployeeStats = async (req: AuthRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const userId = req.user.id;
+
+    try {
+        // 1. Task Stats
+        const taskStats = await prisma.task.groupBy({
+            by: ['status'],
+            where: {
+                assigneeId: userId
+            },
+            _count: {
+                _all: true
+            }
+        });
+
+        const totalTasks = taskStats.reduce((acc, curr) => acc + curr._count._all, 0);
+        const completedTasks = taskStats.find(s => s.status === 'COMPLETED')?._count._all || 0;
+        const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        const pendingTasks = totalTasks - completedTasks;
+
+        // 2. Overdue Tasks
+        const overdueTasks = await prisma.task.findMany({
+            where: {
+                assigneeId: userId,
+                status: { not: 'COMPLETED' },
+                dueDate: { lt: new Date() }
+            },
+            select: {
+                id: true,
+                title: true,
+                dueDate: true,
+                priority: true,
+                goal: { select: { title: true } }
+            },
+            take: 5
+        });
+
+        // 3. Recent Activity (Completed tasks in last 7 days)
+        const recentCompleted = await prisma.task.count({
+            where: {
+                assigneeId: userId,
+                status: 'COMPLETED',
+                updatedAt: {
+                    gte: new Date(new Date().setDate(new Date().getDate() - 7))
+                }
+            }
+        });
+
+        res.json({
+            overview: {
+                totalTasks,
+                completedTasks,
+                pendingTasks,
+                completionRate,
+                recentCompleted
+            },
+            taskDistribution: taskStats.map(s => ({ name: s.status, value: s._count._all })),
+            overdueTasks
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching employee stats' });
+    }
+}

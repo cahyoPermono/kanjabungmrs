@@ -46,12 +46,15 @@ export interface Comment {
     createdAt: string;
 }
 
+export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
 export interface Task {
     id: number;
     title: string;
     description: string | null;
-    status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
-    priority: 'LOW' | 'MEDIUM' | 'HIGH';
+    status: TaskStatus;
+    priority: TaskPriority;
     dueDate: string | null;
     assignee: User | null;
     assigneeId: number | null;
@@ -74,7 +77,8 @@ interface TaskHistory {
 const priorityIcons = {
     LOW: <Flag className="h-4 w-4 text-slate-500" />,
     MEDIUM: <Flag className="h-4 w-4 text-yellow-500" />,
-    HIGH: <Flag className="h-4 w-4 text-red-500" />
+    HIGH: <Flag className="h-4 w-4 text-orange-500" />,
+    URGENT: <Flag className="h-4 w-4 text-red-600 fill-red-600" />
 };
 
 

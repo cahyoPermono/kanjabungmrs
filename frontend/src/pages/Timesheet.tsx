@@ -83,7 +83,7 @@ export default function Timesheet() {
     }
     
     // Shared operations
-    const { updateAssignee, updatePriority, updateDueDate, addComment, deleteTask } = useTaskOperations(fetchTasks);
+    const { updateAssignee, updatePriority, updateDueDate, updateStatus, addComment, deleteTask } = useTaskOperations(fetchTasks);
 
     useEffect(() => {
         fetchTasks();
@@ -164,6 +164,7 @@ export default function Timesheet() {
                                     onAddTask={(status) => openAddTask(status)}
                                     onUpdateAssignee={updateAssignee}
                                     onUpdatePriority={updatePriority}
+                                    onUpdateStatus={updateStatus}
                                     onUpdateDueDate={updateDueDate}
                                     onAddComment={addComment}
                                     onDeleteTask={deleteTask}
