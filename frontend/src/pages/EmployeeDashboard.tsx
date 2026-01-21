@@ -1,174 +1,204 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card } from '@/components/ui/card';
-
-interface Task {
-    id: number;
-    title: string;
-    description: string;
-    status: string;
-    priority: string;
-    goal: { title: string };
-    dueDate: string;
-}
+import {
+    Accordion,
+} from "@/components/ui/accordion"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { TaskStatusGroup } from '@/components/task/TaskStatusGroup';
+import { useTaskOperations } from '@/hooks/useTaskOperations';
+import { Task, User } from '@/components/task/TaskActions';
+import { useAuthStore } from '@/store/authStore';
 
 interface Goal {
     id: number;
+    code: string;
     title: string;
 }
 
-const taskSchema = z.object({
-    title: z.string().min(2),
-    description: z.string(),
-    priority: z.enum(['LOW', 'MEDIUM', 'HIGH']),
-    goalId: z.string(),
-    dueDate: z.string().optional()
-});
-
 export default function EmployeeDashboard() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [openTaskDialog, setOpenTaskDialog] = useState(false);
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [goals, setGoals] = useState<Goal[]>([]);
+    const [employees, setEmployees] = useState<User[]>([]); // Need employees for popovers
+    const [loading, setLoading] = useState(true);
+    const user = useAuthStore((state) => state.user);
 
-  const fetchTasks = async () => {
-      try {
-        const res = await axios.get('http://localhost:3000/api/tasks');
-        setTasks(res.data);
-      } catch (e) {}
-  };
+    // Dialogs
+    const [newTaskOpen, setNewTaskOpen] = useState(false);
+    
+    // New Task Form
+    const [taskTitle, setTaskTitle] = useState('');
+    const [taskDescription, setTaskDescription] = useState('');
+    const [taskPriority, setTaskPriority] = useState('MEDIUM');
+    const [taskDueDate, setTaskDueDate] = useState('');
+    const [selectedGoalId, setSelectedGoalId] = useState<string>('');
+    const [selectedStatus, setSelectedStatus] = useState<string>('TODO');
 
-  const fetchGoals = async () => {
-      try {
-        const res = await axios.get('http://localhost:3000/api/goals');
-        setGoals(res.data);
-      } catch (e) {}
-  };
 
-  useEffect(() => {
-    fetchTasks();
-    fetchGoals();
-  }, []);
+    const fetchData = async () => {
+        try {
+            const [tasksRes, goalsRes, employeesRes] = await Promise.all([
+                axios.get('http://localhost:3000/api/tasks'),
+                axios.get('http://localhost:3000/api/goals'),
+                axios.get('http://localhost:3000/api/goals/employees')
+            ]);
+            setTasks(tasksRes.data);
+            setGoals(goalsRes.data);
+            setEmployees(employeesRes.data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  const form = useForm<z.infer<typeof taskSchema>>({
-      resolver: zodResolver(taskSchema),
-      defaultValues: {
-          title: '',
-          description: '',
-          priority: 'MEDIUM',
-          goalId: '',
-          dueDate: ''
-      }
-  });
+    const { updateAssignee, updatePriority, updateDueDate, updateStatus, addComment, deleteTask } = useTaskOperations(fetchData);
 
-  const onSubmitTask = async (values: z.infer<typeof taskSchema>) => {
-      try {
-          await axios.post('http://localhost:3000/api/tasks', {
-              ...values,
-              goalId: Number(values.goalId)
-          });
-          setOpenTaskDialog(false);
-          form.reset();
-          fetchTasks();
-      } catch (error) {
-          console.error(error);
-          alert('Failed to create task');
-      }
-  }
+    useEffect(() => {
+        fetchData();
+    }, []);
 
-  const updateStatus = async (id: number, status: string) => {
-      try {
-          await axios.put(`http://localhost:3000/api/tasks/${id}`, { status });
-          fetchTasks();
-      } catch (error) {
-          console.error(error);
-      }
-  }
+    const handleCreateTask = async () => {
+        if (!selectedGoalId || !taskTitle) return;
+        try {
+            await axios.post('http://localhost:3000/api/tasks', {
+                title: taskTitle,
+                description: taskDescription,
+                priority: taskPriority === 'NO_PRIORITY' ? null : taskPriority,
+                dueDate: taskDueDate,
+                status: selectedStatus,
+                goalId: parseInt(selectedGoalId),
+                assigneeId: user?.id // Auto-assign to self
+            });
+            setNewTaskOpen(false);
+            resetTaskForm();
+            fetchData(); 
+        } catch (error) {
+            console.error(error);
+            alert('Failed to create task');
+        }
+    };
+    
+    const resetTaskForm = () => {
+        setTaskTitle('');
+        setTaskDescription('');
+        setTaskPriority('MEDIUM');
+        setTaskDueDate('');
+        setSelectedGoalId('');
+        // Status might be preserved if useful
+    }
 
-  return (
-    <Layout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-            <h2 className="text-3xl font-bold">My Tasks</h2>
-            <Dialog open={openTaskDialog} onOpenChange={setOpenTaskDialog}>
-                <DialogTrigger asChild>
-                    <Button>Create Task</Button>
-                </DialogTrigger>
+    const openAddTask = (status: string = 'TODO') => {
+        setSelectedStatus(status);
+        setNewTaskOpen(true);
+    };
+
+    if (loading) return <div className="p-8">Loading...</div>;
+
+    return (
+        <div className="p-4 md:p-8 space-y-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <h1 className="text-3xl font-bold tracking-tight">My Tasks</h1>
+                <Button onClick={() => openAddTask('TODO')}>+ Add Task</Button>
+            </div>
+
+            <Accordion type="multiple" defaultValue={["IN_PROGRESS", "TODO"]} className="w-full space-y-4">
+                {["IN_PROGRESS", "TODO", "COMPLETED"].map((status) => {
+                    const statusTasks = tasks.filter(t => t.status === status);
+                    
+                    return (
+                       <TaskStatusGroup 
+                            key={status}
+                            status={status}
+                            tasks={statusTasks}
+                            employees={employees}
+                            onAddTask={openAddTask}
+                            onUpdateAssignee={updateAssignee}
+                            onUpdatePriority={updatePriority}
+                            onUpdateStatus={updateStatus}
+                            onUpdateDueDate={updateDueDate}
+                            onAddComment={addComment}
+                            onDeleteTask={deleteTask}
+                       />
+                    );
+                })}
+            </Accordion>
+
+            {/* Task Creation Dialog */}
+            <Dialog open={newTaskOpen} onOpenChange={setNewTaskOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Create New Task</DialogTitle>
+                        <DialogTitle>Add New Task ({selectedStatus})</DialogTitle>
                     </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmitTask)} className="space-y-4">
-                            <FormField control={form.control} name="title" render={({field}) => (
-                                <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>
-                            )}/>
-                            <FormField control={form.control} name="description" render={({field}) => (
-                                <FormItem><FormLabel>Description</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>
-                            )}/>
-                            <FormField control={form.control} name="priority" render={({field}) => (
-                                <FormItem><FormLabel>Priority</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Priority"/></SelectTrigger></FormControl>
+                    <div className="grid gap-4 py-4">
+                         <div className="grid gap-2">
+                            <Label>Goal</Label>
+                            <Select 
+                                value={selectedGoalId} 
+                                onValueChange={setSelectedGoalId}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Goal" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {goals.map(g => (
+                                        <SelectItem key={g.id} value={g.id.toString()}>{g.code ? `[${g.code}] ` : ''}{g.title}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        
+                        <div className="grid gap-2">
+                            <Label>Title</Label>
+                            <Input value={taskTitle} onChange={e => setTaskTitle(e.target.value)} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Description (Optional)</Label>
+                            <Input value={taskDescription} onChange={e => setTaskDescription(e.target.value)} />
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label>Priority</Label>
+                                <Select value={taskPriority} onValueChange={setTaskPriority}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem value="NO_PRIORITY">No Priority</SelectItem>
                                         <SelectItem value="LOW">Low</SelectItem>
                                         <SelectItem value="MEDIUM">Medium</SelectItem>
                                         <SelectItem value="HIGH">High</SelectItem>
+                                        <SelectItem value="URGENT">Urgent</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <FormMessage/></FormItem>
-                            )}/>
-                            <FormField control={form.control} name="goalId" render={({field}) => (
-                                <FormItem><FormLabel>Link to Goal</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select Goal"/></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        {goals.map(g => (
-                                            <SelectItem key={g.id} value={String(g.id)}>{g.title}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage/></FormItem>
-                            )}/>
-                            <Button type="submit">Create Task</Button>
-                        </form>
-                    </Form>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>Due Date</Label>
+                                <Input type="date" value={taskDueDate} onChange={e => setTaskDueDate(e.target.value)} />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleCreateTask}>Create Task</Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
-
-        <div className="space-y-4">
-            {tasks.map((task) => (
-                <Card key={task.id} className="p-4 flex justify-between items-center">
-                    <div>
-                        <h3 className="font-bold">{task.title}</h3>
-                        <p className="text-sm text-gray-500">{task.description}</p>
-                        <div className="flex gap-2 text-xs mt-2 text-gray-400">
-                             <span>Goal: {task.goal?.title}</span>
-                             <span>Priority: {task.priority}</span>
-                             <span>Status: {task.status}</span>
-                        </div>
-                    </div>
-                    <div className="flex gap-2">
-                        {task.status !== 'DONE' && (
-                            <Button size="sm" onClick={() => updateStatus(task.id, 'DONE')}>Mark Done</Button>
-                        )}
-                        {task.status === 'TODO' && (
-                            <Button size="sm" variant="secondary" onClick={() => updateStatus(task.id, 'IN_PROGRESS')}>Start</Button>
-                        )}
-                    </div>
-                </Card>
-            ))}
-        </div>
-      </div>
-    </Layout>
-  );
+    );
 }
