@@ -110,14 +110,31 @@ export default function EmployeeDashboard() {
 
     if (loading) return <div className="p-8">Loading...</div>;
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const overdueTasks = tasks.filter(t => {
+        if (!t.dueDate || t.status === 'COMPLETED') return false;
+        const due = new Date(t.dueDate);
+        return due < today;
+    });
+
+    const nearDueTasks = tasks.filter(t => {
+        if (!t.dueDate || t.status === 'COMPLETED') return false;
+        const due = new Date(t.dueDate);
+        const diffTime = due.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        return diffDays >= 0 && diffDays <= 3 && due >= today; // 0 to 3 days from now
+    });
+
     return (
-        <div className="p-4 md:p-8 space-y-8">
+        <div className="p-4 md:p-8 space-y-8 relative min-h-full">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <h1 className="text-3xl font-bold tracking-tight">My Tasks</h1>
                 <Button onClick={() => openAddTask('TODO')}>+ Add Task</Button>
             </div>
 
-            <Accordion type="multiple" defaultValue={["IN_PROGRESS", "TODO"]} className="w-full space-y-4">
+            <Accordion type="multiple" defaultValue={["IN_PROGRESS", "TODO", "COMPLETED"]} className="w-full space-y-4">
                 {["IN_PROGRESS", "TODO", "COMPLETED"].map((status) => {
                     const statusTasks = tasks.filter(t => t.status === status);
                     
@@ -138,6 +155,49 @@ export default function EmployeeDashboard() {
                     );
                 })}
             </Accordion>
+            
+            <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-4 items-end pointer-events-none">
+                {/* Overdue Reminder */}
+                {overdueTasks.length > 0 && (
+                    <div className="pointer-events-auto animate-in slide-in-from-bottom-5 fade-in duration-500 bg-destructive text-destructive-foreground p-4 rounded-lg shadow-lg max-w-sm border-2 border-red-600 flex flex-col gap-2">
+                            <div className="flex items-center gap-2 font-bold text-lg">
+                                <span className="relative flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+                                </span>
+                                Warning: {overdueTasks.length} Overdue Task{overdueTasks.length > 1 ? 's' : ''}!
+                            </div>
+                            <p className="text-sm opacity-90">
+                                You have tasks that are past their due date. Please update their status or reschedule.
+                            </p>
+                            <ul className="text-xs list-disc pl-4 opacity-90 max-h-24 overflow-y-auto">
+                                {overdueTasks.map(t => (
+                                    <li key={t.id}>{t.title} (Due: {new Date(t.dueDate!).toLocaleDateString()})</li>
+                                ))}
+                            </ul>
+                    </div>
+                )}
+
+                {/* Near Due Warning */}
+                {nearDueTasks.length > 0 && (
+                    <div className="pointer-events-auto animate-in slide-in-from-bottom-5 fade-in duration-500 bg-amber-500 text-white p-4 rounded-lg shadow-lg max-w-sm border-2 border-amber-600 flex flex-col gap-2">
+                            <div className="flex items-center gap-2 font-bold text-lg">
+                                <span className="relative flex h-3 w-3">
+                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+                                </span>
+                                Reminder: {nearDueTasks.length} Due Soon
+                            </div>
+                            <p className="text-sm opacity-95">
+                                You have tasks due within the next 3 days.
+                            </p>
+                            <ul className="text-xs list-disc pl-4 opacity-95 max-h-24 overflow-y-auto">
+                                {nearDueTasks.map(t => (
+                                    <li key={t.id}>{t.title} (Due: {new Date(t.dueDate!).toLocaleDateString()})</li>
+                                ))}
+                            </ul>
+                    </div>
+                )}
+            </div>
 
             {/* Task Creation Dialog */}
             <Dialog open={newTaskOpen} onOpenChange={setNewTaskOpen}>
