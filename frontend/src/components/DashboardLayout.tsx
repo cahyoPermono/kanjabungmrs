@@ -1,6 +1,6 @@
 import { Sidebar } from './Sidebar';
 import { Outlet } from 'react-router-dom';
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import { useState } from 'react';
@@ -26,6 +26,10 @@ export function DashboardLayout() {
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="p-0 w-64">
+                             <div className="sr-only">
+                                <SheetTitle>Navigation Menu</SheetTitle>
+                                <SheetDescription>Main navigation menu for mobile</SheetDescription>
+                             </div>
                             <Sidebar />
                         </SheetContent>
                     </Sheet>

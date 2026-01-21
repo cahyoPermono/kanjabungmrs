@@ -124,18 +124,20 @@ export default function Timesheet() {
     };
 
     return (
-        <div className="flex h-screen bg-gray-50/30">
+        <div className="flex flex-col md:flex-row h-screen bg-gray-50/30">
             {/* Sidebar Calendar */}
-            <div className="w-[300px] border-r bg-white p-6 space-y-6 flex-shrink-0">
+            <div className="w-full md:w-[300px] border-r bg-white p-6 space-y-6 flex-shrink-0">
                 <div className="font-semibold text-lg px-2 text-gray-700">Calendar</div>
-                <ExtendedCalendar
-                    date={date}
-                    setDate={setDate}
-                />
+                <div className="flex justify-center md:block">
+                     <ExtendedCalendar
+                        date={date}
+                        setDate={setDate}
+                    />
+                </div>
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 p-8 overflow-auto">
+            <div className="flex-1 p-4 md:p-8 overflow-auto">
                 <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
                          <div className="bg-primary/10 p-3 rounded-lg">
@@ -199,7 +201,7 @@ export default function Timesheet() {
                             <Input value={taskTitle} onChange={e => setTaskTitle(e.target.value)} />
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <div className="grid gap-2">
                                 <Label>Assignee</Label>
                                 <Select value={taskAssigneeId} onValueChange={setTaskAssigneeId}>
