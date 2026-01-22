@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea";  
 import { TaskStatusGroup } from '@/components/task/TaskStatusGroup';
 import { useTaskOperations } from '@/hooks/useTaskOperations';
 import { Task, User } from '@/components/task/TaskActions';
@@ -73,37 +74,62 @@ export default function EmployeeDashboard() {
         fetchData();
     }, []);
 
-    const handleCreateTask = async () => {
+    const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+    const handleEditTask = (task: Task) => {
+        setEditingTask(task);
+        setTaskTitle(task.title);
+        setTaskDescription(task.description || '');
+        setTaskPriority(task.priority || 'NO_PRIORITY');
+        setTaskDueDate(task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '');
+        setSelectedGoalId(task.goalId.toString());
+        setSelectedStatus(task.status);
+        setNewTaskOpen(true);
+    };
+
+    const handleCreateOrUpdateTask = async () => {
         if (!selectedGoalId || !taskTitle) return;
         try {
-            await axios.post('http://localhost:3000/api/tasks', {
-                title: taskTitle,
-                description: taskDescription,
-                priority: taskPriority === 'NO_PRIORITY' ? null : taskPriority,
-                dueDate: taskDueDate,
-                status: selectedStatus,
-                goalId: parseInt(selectedGoalId),
-                assigneeId: user?.id // Auto-assign to self
-            });
+            if (editingTask) {
+                await axios.put(`http://localhost:3000/api/tasks/${editingTask.id}`, {
+                    title: taskTitle,
+                    description: taskDescription,
+                    priority: taskPriority === 'NO_PRIORITY' ? null : taskPriority,
+                    dueDate: taskDueDate,
+                    goalId: parseInt(selectedGoalId),
+                    status: selectedStatus 
+                });
+            } else {
+                await axios.post('http://localhost:3000/api/tasks', {
+                    title: taskTitle,
+                    description: taskDescription,
+                    priority: taskPriority === 'NO_PRIORITY' ? null : taskPriority,
+                    dueDate: taskDueDate,
+                    status: selectedStatus,
+                    goalId: parseInt(selectedGoalId),
+                    assigneeId: user?.id
+                });
+            }
             setNewTaskOpen(false);
             resetTaskForm();
-            fetchData(); 
+            fetchData();
         } catch (error) {
             console.error(error);
-            alert('Failed to create task');
+            alert(`Failed to ${editingTask ? 'update' : 'create'} task`);
         }
     };
-    
+
     const resetTaskForm = () => {
         setTaskTitle('');
         setTaskDescription('');
         setTaskPriority('MEDIUM');
         setTaskDueDate('');
         setSelectedGoalId('');
-        // Status might be preserved if useful
+        setEditingTask(null);
     }
 
     const openAddTask = (status: string = 'TODO') => {
+        resetTaskForm();
         setSelectedStatus(status);
         setNewTaskOpen(true);
     };
@@ -151,6 +177,7 @@ export default function EmployeeDashboard() {
                             onUpdateDueDate={updateDueDate}
                             onAddComment={addComment}
                             onDeleteTask={deleteTask}
+                            onEdit={handleEditTask}
                        />
                     );
                 })}
@@ -203,7 +230,7 @@ export default function EmployeeDashboard() {
             <Dialog open={newTaskOpen} onOpenChange={setNewTaskOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Add New Task ({selectedStatus})</DialogTitle>
+                        <DialogTitle>{editingTask ? 'Edit Task' : `Add New Task (${selectedStatus})`}</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                          <div className="grid gap-2">
@@ -228,8 +255,12 @@ export default function EmployeeDashboard() {
                             <Input value={taskTitle} onChange={e => setTaskTitle(e.target.value)} />
                         </div>
                         <div className="grid gap-2">
-                            <Label>Description (Optional)</Label>
-                            <Input value={taskDescription} onChange={e => setTaskDescription(e.target.value)} />
+                            <Label>Description <span className="text-muted-foreground text-xs">(Optional)</span></Label>
+                            <Textarea 
+                                className="min-h-[80px] resize-none"
+                                value={taskDescription} 
+                                onChange={e => setTaskDescription(e.target.value)} 
+                            />
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -255,7 +286,7 @@ export default function EmployeeDashboard() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button onClick={handleCreateTask}>Create Task</Button>
+                        <Button onClick={handleCreateOrUpdateTask}>{editingTask ? 'Save Changes' : 'Create Task'}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

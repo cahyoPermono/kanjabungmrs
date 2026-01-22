@@ -187,7 +187,10 @@ export const updateTask = async (req: AuthRequest, res: Response) => {
         const data: any = {
             status,
             priority,
-            dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined
+            dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
+            title: req.body.title,
+            description: req.body.description,
+            goalId: req.body.goalId ? Number(req.body.goalId) : undefined
         };
 
         if (assigneeId !== undefined) {

@@ -27,7 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Calendar as CalendarIcon, Clock, MessageSquare, Plus, MoreHorizontal, Flag } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, MessageSquare, Plus, MoreHorizontal, Flag, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -310,7 +310,7 @@ export function StatusPopover({ task, onUpdate }: { task: Task, onUpdate: (tid: 
     )
 }
 
-export function MoreActionsMenu({ task, onDelete }: { task: Task, onDelete: (tid: number) => void }) {
+export function MoreActionsMenu({ task, onDelete, onEdit }: { task: Task, onDelete: (tid: number) => void, onEdit?: (task: Task) => void }) {
     const [open, setOpen] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [showHistoryDialog, setShowHistoryDialog] = useState(false);
@@ -324,6 +324,15 @@ export function MoreActionsMenu({ task, onDelete }: { task: Task, onDelete: (tid
                     </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[160px]">
+                    {onEdit && (
+                        <DropdownMenuItem 
+                            className="cursor-pointer"
+                            onSelect={() => onEdit(task)}
+                        >
+                            <Pencil className="mr-2 h-4 w-4" /> 
+                            <span>Edit Task</span>
+                        </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem 
                         className="cursor-pointer"
                         onSelect={() => setShowHistoryDialog(true)}

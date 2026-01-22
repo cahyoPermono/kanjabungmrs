@@ -16,9 +16,10 @@ interface TaskTableProps {
     onUpdateDueDate: (tid: number, d: string) => void;
     onAddComment: (tid: number, c: string) => void;
     onDeleteTask: (tid: number) => void;
+    onEdit?: (task: Task) => void;
 }
 
-export function TaskTable({ tasks, employees, onUpdateAssignee, onUpdatePriority, onUpdateStatus, onUpdateDueDate, onAddComment, onDeleteTask }: TaskTableProps) {
+export function TaskTable({ tasks, employees, onUpdateAssignee, onUpdatePriority, onUpdateStatus, onUpdateDueDate, onAddComment, onDeleteTask, onEdit }: TaskTableProps) {
     return (
         <div className="rounded-md border bg-card overflow-x-auto">
             <Table className="min-w-[800px]">
@@ -56,7 +57,7 @@ export function TaskTable({ tasks, employees, onUpdateAssignee, onUpdatePriority
                                 <CommentPopover task={task} onAddComment={(content) => onAddComment(task.id, content)} />
                             </TableCell>
                             <TableCell className="align-top">
-                                <MoreActionsMenu task={task} onDelete={onDeleteTask} />
+                                <MoreActionsMenu task={task} onDelete={onDeleteTask} onEdit={onEdit} />
                             </TableCell>
                         </TableRow>
                     ))}

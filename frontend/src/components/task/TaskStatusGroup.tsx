@@ -20,6 +20,7 @@ interface TaskStatusGroupProps {
     onUpdateDueDate: (tid: number, d: string) => void;
     onAddComment: (tid: number, c: string) => void;
     onDeleteTask: (tid: number) => void;
+    onEdit?: (task: Task) => void;
 }
 
 const statusColors = {
@@ -38,7 +39,8 @@ export function TaskStatusGroup({
     onUpdateStatus,
     onUpdateDueDate,
     onAddComment,
-    onDeleteTask
+    onDeleteTask,
+    onEdit
 }: TaskStatusGroupProps) {
     const count = tasks.length;
 
@@ -68,6 +70,7 @@ export function TaskStatusGroup({
                     onUpdateDueDate={onUpdateDueDate}
                     onAddComment={onAddComment}
                     onDeleteTask={onDeleteTask}
+                    onEdit={onEdit}
                 />
             </AccordionContent>
         </AccordionItem>
