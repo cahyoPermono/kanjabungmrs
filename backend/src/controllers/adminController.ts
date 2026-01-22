@@ -11,7 +11,8 @@ import prisma from '../prismaClient';
 export const getDivisions = async (req: Request, res: Response) => {
   try {
     const divisions = await prisma.division.findMany({
-        include: { _count: { select: { users: true } } }
+        include: { _count: { select: { users: true } } },
+        orderBy: { id: 'asc' }
     });
     res.json(divisions);
   } catch (error) {
@@ -33,7 +34,7 @@ export const updateDivision = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { name } = req.body;
   try {
-    const division = await prisma.division.update({ where: { id: Number(id) }, data: { name } });
+    const division = await prisma.division.update({ where: { id: Number(id) }, data: { name, isActive: req.body.isActive } });
     res.json(division);
   } catch (error) {
       res.status(500).json({ message: 'Error updating division' });
@@ -43,8 +44,12 @@ export const updateDivision = async (req: Request, res: Response) => {
 export const deleteDivision = async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
-        await prisma.division.delete({ where: { id: Number(id) } });
-        res.json({ message: 'Division deleted' });
+        // Soft delete
+        await prisma.division.update({
+            where: { id: Number(id) },
+            data: { isActive: false }
+        });
+        res.json({ message: 'Division deactivated successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Error deleting division' });
     }
@@ -54,7 +59,8 @@ export const deleteDivision = async (req: Request, res: Response) => {
 export const getUsers = async (req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
-        select: { id: true, name: true, email: true, role: true, divisionId: true, division: { select: { name: true } } }
+        select: { id: true, name: true, email: true, role: true, isActive: true, divisionId: true, division: { select: { name: true } } },
+        orderBy: { id: 'asc' }
     });
     res.json(users);
   } catch (error) {
@@ -72,10 +78,11 @@ export const createUser = async (req: Request, res: Response) => {
                 password: hashedPassword,
                 name,
                 role,
-                divisionId: Number(divisionId) // Ensure it is a number
+                divisionId: Number(divisionId), // Ensure it is a number
+                isActive: true
             }
         });
-        res.status(201).json({ id: user.id, email: user.email, name: user.name, role: user.role });
+        res.status(201).json({ id: user.id, email: user.email, name: user.name, role: user.role, isActive: (user as any).isActive });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error creating user' });
@@ -84,7 +91,7 @@ export const createUser = async (req: Request, res: Response) => {
 
 export const updateUser = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { email, name, role, divisionId } = req.body;
+    const { email, name, role, divisionId, isActive } = req.body;
     try {
         const user = await prisma.user.update({
             where: { id: Number(id) },
@@ -92,20 +99,26 @@ export const updateUser = async (req: Request, res: Response) => {
                 email,
                 name,
                 role,
-                divisionId: divisionId ? Number(divisionId) : null
+                divisionId: divisionId ? Number(divisionId) : null,
+                isActive
             }
         });
-        res.json({ id: user.id, email: user.email, name: user.name, role: user.role });
+        res.json({ id: user.id, email: user.email, name: user.name, role: user.role, isActive: (user as any).isActive });
     } catch (error) {
          res.status(500).json({ message: 'Error updating user' });
     }
 }
 
+
 export const deleteUser = async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
-        await prisma.user.delete({ where: { id: Number(id) } });
-        res.json({ message: 'User deleted' });
+        // Soft delete
+        await prisma.user.update({
+            where: { id: Number(id) },
+            data: { isActive: false }
+        });
+        res.json({ message: 'User deactivated successfully' });
     } catch (error) {
          res.status(500).json({ message: 'Error deleting user' });
     }

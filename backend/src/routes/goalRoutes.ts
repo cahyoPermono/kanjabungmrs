@@ -6,8 +6,8 @@ const router: Router = Router();
 
 router.use(authenticateToken);
 
-router.get('/', authorizeRole(['MANAGER', 'EMPLOYEE']), getGoals); // Both can view goals
-router.get('/employees', authorizeRole(['MANAGER', 'EMPLOYEE']), getDivisionEmployees); // Both can see employees (for assigning/filtering)
+router.get('/', authorizeRole(['MANAGER', 'EMPLOYEE', 'ADMIN']), getGoals); // All roles can view goals
+router.get('/employees', authorizeRole(['MANAGER', 'EMPLOYEE', 'ADMIN']), getDivisionEmployees); // All roles can see employees
 router.get('/team-overview', authorizeRole(['MANAGER']), getTeamOverview); // Manager sees hierarchical team view
 router.post('/', authorizeRole(['MANAGER']), createGoal);
 router.delete('/:id', authorizeRole(['MANAGER', 'ADMIN']), deleteGoal);

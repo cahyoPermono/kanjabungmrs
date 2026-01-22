@@ -26,17 +26,19 @@ export interface FilterState {
     createdAtEnd?: string;
     closedAtStart?: string;
     closedAtEnd?: string;
+    goalId?: string;
 }
 
 interface TaskFiltersProps {
     filters: FilterState;
     setFilters: (filters: FilterState) => void;
     employees?: { id: number; name: string }[];
+    goals?: { id: number; title: string, code: string }[];
     showAssignee?: boolean;
     className?: string;
 }
 
-export function TaskFilters({ filters, setFilters, employees = [], showAssignee = false, className }: TaskFiltersProps) {
+export function TaskFilters({ filters, setFilters, employees = [], goals = [], showAssignee = false, className }: TaskFiltersProps) {
     
     const handleChange = (key: keyof FilterState, value: string) => {
         setFilters({ ...filters, [key]: value === "ALL" ? undefined : value });
@@ -81,20 +83,37 @@ export function TaskFilters({ filters, setFilters, employees = [], showAssignee 
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Priority</Label>
-                            <Select value={filters.priority || "ALL"} onValueChange={(v) => handleChange("priority", v)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="All Priorities" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="ALL">All Priorities</SelectItem>
-                                    <SelectItem value="LOW">Low</SelectItem>
-                                    <SelectItem value="MEDIUM">Medium</SelectItem>
-                                    <SelectItem value="HIGH">High</SelectItem>
-                                    <SelectItem value="URGENT">Urgent</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                             <Label>Goal</Label>
+                             <Select value={filters.goalId || "ALL"} onValueChange={(v) => handleChange("goalId", v)}>
+                                 <SelectTrigger>
+                                     <SelectValue placeholder="All Goals" />
+                                 </SelectTrigger>
+                                 <SelectContent>
+                                     <SelectItem value="ALL">All Goals</SelectItem>
+                                     {Array.isArray(goals) && goals.map((goal) => (
+                                         <SelectItem key={goal.id} value={goal.id.toString()}>
+                                             {goal.code} - {goal.title}
+                                         </SelectItem>
+                                     ))}
+                                 </SelectContent>
+                             </Select>
+                         </div>
+ 
+                         <div className="space-y-2">
+                             <Label>Priority</Label>
+                             <Select value={filters.priority || "ALL"} onValueChange={(v) => handleChange("priority", v)}>
+                                 <SelectTrigger>
+                                     <SelectValue placeholder="All Priorities" />
+                                 </SelectTrigger>
+                                 <SelectContent>
+                                     <SelectItem value="ALL">All Priorities</SelectItem>
+                                     <SelectItem value="LOW">Low</SelectItem>
+                                     <SelectItem value="MEDIUM">Medium</SelectItem>
+                                     <SelectItem value="HIGH">High</SelectItem>
+                                     <SelectItem value="URGENT">Urgent</SelectItem>
+                                 </SelectContent>
+                             </Select>
+                         </div>
 
                         {/* Assignee - Conditional */}
                         {showAssignee && (

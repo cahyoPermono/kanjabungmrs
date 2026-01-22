@@ -12,6 +12,8 @@ import EmployeeReports from './pages/EmployeeReports';
 import Profile from './pages/Profile';
 import { useAuthStore } from './store/authStore';
 import { DashboardLayout } from './components/DashboardLayout';
+import Accounts from './pages/Accounts';
+import Divisions from './pages/Divisions';
 import { JSX } from 'react';
 
 function PrivateRoute({ children, roles }: { children: JSX.Element, roles: string[] }) {
@@ -31,6 +33,16 @@ function App() {
             <Route path="/admin" element={
                 <PrivateRoute roles={['ADMIN']}>
                     <AdminDashboard />
+                </PrivateRoute>
+            } />
+            <Route path="/accounts" element={
+                <PrivateRoute roles={['ADMIN']}>
+                    <Accounts />
+                </PrivateRoute>
+            } />
+            <Route path="/divisions" element={
+                <PrivateRoute roles={['ADMIN']}>
+                    <Divisions />
                 </PrivateRoute>
             } />
             

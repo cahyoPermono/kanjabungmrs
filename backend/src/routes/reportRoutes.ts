@@ -1,10 +1,11 @@
-import express, { Router } from 'express';
-import { getDashboardStats, getEmployeeStats } from '../controllers/reportController';
+import { Router } from 'express';
+import { getDashboardStats, getEmployeeStats, downloadReport } from '../controllers/reportController';
 import { authenticateToken } from '../middleware/auth';
 
-const router: Router = express.Router();
+const router = Router();
 
-router.get('/', authenticateToken, getDashboardStats);
-router.get('/employee', authenticateToken, getEmployeeStats);
+router.get('/dashboard-stats', authenticateToken, getDashboardStats);
+router.get('/employee-stats', authenticateToken, getEmployeeStats);
+router.get('/download', authenticateToken, downloadReport);
 
 export default router;

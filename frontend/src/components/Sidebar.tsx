@@ -10,7 +10,9 @@ import {
     FileText, 
     User, 
     LogOut,
-    Kanban
+    Kanban,
+    Building2,
+    Settings
 } from 'lucide-react';
 
 export function Sidebar({ className }: { className?: string }) {
@@ -20,6 +22,8 @@ export function Sidebar({ className }: { className?: string }) {
     const links = [
         { href: '/manager', label: 'Home', icon: Home, roles: ['MANAGER'] },
         { href: '/admin', label: 'Home', icon: Home, roles: ['ADMIN'] },
+        { href: '/accounts', label: 'Accounts', icon: Settings, roles: ['ADMIN'] },
+        { href: '/divisions', label: 'Divisions', icon: Building2, roles: ['ADMIN'] },
         { href: '/employee', label: 'Home', icon: Home, roles: ['EMPLOYEE'] },
         { href: '/board', label: 'Board', icon: Kanban, roles: ['EMPLOYEE'] }, // New Board Link
         { href: '/teams', label: 'Teams', icon: Users, roles: ['MANAGER', 'ADMIN'] }, // Placeholder

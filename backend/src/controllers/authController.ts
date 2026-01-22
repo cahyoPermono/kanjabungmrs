@@ -12,9 +12,20 @@ export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({
+        where: { email },
+        include: { division: true } // Include division to check status
+    });
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password.' });
+    }
+
+    if (!(user as any).isActive) {
+        return res.status(403).json({ message: 'Your account has been deactivated. Please contact administrator.' });
+    }
+
+    if (user.division && !(user.division as any).isActive) {
+        return res.status(403).json({ message: 'Your division has been deactivated. Please contact administrator.' });
     }
 
     const validPassword = await bcrypt.compare(password, user.password);
