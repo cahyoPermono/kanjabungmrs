@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { TaskStatusGroup } from '@/components/task/TaskStatusGroup';
 import { useTaskOperations } from '@/hooks/useTaskOperations';
 import { Task, User } from '@/components/task/TaskActions';
+import { TaskFilters, FilterState } from '@/components/task/TaskFilters';
 import { useAuthStore } from '@/store/authStore';
 
 interface Goal {
@@ -49,12 +50,15 @@ export default function EmployeeDashboard() {
     const [taskDueDate, setTaskDueDate] = useState('');
     const [selectedGoalId, setSelectedGoalId] = useState<string>('');
     const [selectedStatus, setSelectedStatus] = useState<string>('TODO');
+    
+    // Filters
+    const [filters, setFilters] = useState<FilterState>({});
 
 
     const fetchData = async () => {
         try {
             const [tasksRes, goalsRes, employeesRes] = await Promise.all([
-                axios.get('http://localhost:3000/api/tasks'),
+                axios.get('http://localhost:3000/api/tasks', { params: filters }),
                 axios.get('http://localhost:3000/api/goals'),
                 axios.get('http://localhost:3000/api/goals/employees')
             ]);
@@ -72,7 +76,7 @@ export default function EmployeeDashboard() {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [filters]);
 
     const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -159,6 +163,13 @@ export default function EmployeeDashboard() {
                 <h1 className="text-3xl font-bold tracking-tight">My Tasks</h1>
                 <Button onClick={() => openAddTask('TODO')}>+ Add Task</Button>
             </div>
+
+            <TaskFilters 
+                filters={filters} 
+                setFilters={setFilters} 
+                employees={employees}
+                showAssignee={user?.role === 'MANAGER' || user?.role === 'ADMIN'}
+            />
 
             <Accordion type="multiple" defaultValue={["IN_PROGRESS", "TODO", "COMPLETED"]} className="w-full space-y-4">
                 {["IN_PROGRESS", "TODO", "COMPLETED"].map((status) => {

@@ -19,18 +19,15 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
         return res.status(400).json({ message: 'User not belonging to a division' });
     }
 
-    // Manager sees all tasks in division
-    // Employee sees their own tasks AND tasks in division? 
-    // Spec: "employee hanya bisa melihat goals2 dan task yang melekat pada dia dan di divisinya saja"
-    // Does this mean "Tasks assigned to me" AND "All tasks in my division"? 
-    // Usually goals are shared, tasks are specific. 
-    // Let's interpret "melekat pada dia dan di divisinya saja" as:
-    // - Goals in his division (already covered)
-    // - Tasks assigned to him.
-    // - BUT "manager bisa melihat task2 employee yang berada dalam 1 divisi".
-    // Let's implement parameter filtering.
-
-    const { userId, date } = req.query; // Filter by user if provided (Manager view specific employee)
+    const { 
+        userId, // Deprecated in favor of assigneeId but kept for backward compat if any
+        assigneeId,
+        priority,
+        status,
+        dueDateStart, dueDateEnd,
+        createdAtStart, createdAtEnd,
+        closedAtStart, closedAtEnd
+    } = req.query; 
 
     try {
         const whereClause: any = {
@@ -39,33 +36,68 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
             }
         };
 
+        // --- Role & Assignee Logic ---
         if (req.user.role === 'EMPLOYEE') {
-            // Employee only sees their own tasks OR tasks they created?
-            // "employee bisa membuat task, dan memilih untuk dimasukan ke goals mana saja"
-            // So they create tasks. They are also likely the assignee.
+            // Employees see their own tasks
             whereClause.assigneeId = req.user.id;
-        } else if (userId) {
-             // Manager filtering by specific employee
-             whereClause.assigneeId = Number(userId);
+        } else {
+            // Managers can see all, or filter by specific assignee
+            if (assigneeId) {
+                whereClause.assigneeId = Number(assigneeId);
+            } else if (userId) { // Backward compatibility
+                whereClause.assigneeId = Number(userId);
+            }
         }
 
-        if (date) {
-            const queryDate = new Date(date as string);
-            // Create start and end of day
-            const startOfDay = new Date(queryDate.setHours(0, 0, 0, 0));
-            const endOfDay = new Date(queryDate.setHours(23, 59, 59, 999));
-            
-            whereClause.dueDate = {
-                gte: startOfDay,
-                lte: endOfDay
-            };
+        // --- Priority & Status ---
+        if (priority && priority !== 'ALL') {
+             whereClause.priority = priority as any;
+        }
+
+        if (status && status !== 'ALL') {
+             whereClause.status = status as any;
+        }
+
+        // --- Date Range Helper ---
+        const buildDateFilter = (start: any, end: any) => {
+            if (!start && !end) return undefined;
+            const filter: any = {};
+            if (start) filter.gte = new Date(start as string);
+            if (end) {
+                // Set to end of day if it's just a date string, or strictly use provided ISO
+                const endDate = new Date(end as string);
+                if ((end as string).length <= 10) { // YYYY-MM-DD
+                    endDate.setHours(23, 59, 59, 999);
+                }
+                filter.lte = endDate;
+            }
+            return filter;
+        };
+
+        // --- Date Filters ---
+        const dueDateFilter = buildDateFilter(dueDateStart, dueDateEnd);
+        if (dueDateFilter) whereClause.dueDate = dueDateFilter;
+
+        const createdAtFilter = buildDateFilter(createdAtStart, createdAtEnd);
+        if (createdAtFilter) whereClause.createdAt = createdAtFilter;
+
+        // "Date Closed" - using updatedAt for COMPLETED tasks as proxy
+        if (closedAtStart || closedAtEnd) {
+             const closedFilter = buildDateFilter(closedAtStart, closedAtEnd);
+             // We only care about closed dates for tasks that are actually closed (COMPLETED)
+             // But if user filters by date closed, they implicitly want completed tasks? 
+             // Or we just filter tasks that were *updated* in that range AND are completed.
+             if (closedFilter) {
+                 whereClause.updatedAt = closedFilter;
+                 whereClause.status = 'COMPLETED'; 
+             }
         }
 
         const tasks = await prisma.task.findMany({
             where: whereClause,
             include: {
-                goal: { select: { title: true } },
-                assignee: { select: { id: true, name: true, email: true } }, // Include id and email for avatar
+                goal: { select: { title: true, code: true } },
+                assignee: { select: { id: true, name: true, email: true } },
                 comments: {
                     include: { user: { select: { id: true, name: true } } },
                     orderBy: { createdAt: 'desc' }
@@ -75,6 +107,7 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
         });
         res.json(tasks);
     } catch (error) {
+        console.error("Error fetching tasks:", error);
         res.status(500).json({ message: 'Error fetching tasks' });
     }
 }

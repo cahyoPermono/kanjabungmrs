@@ -10,6 +10,8 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { TaskStatusGroup } from '@/components/task/TaskStatusGroup';
 import { useTaskOperations } from '@/hooks/useTaskOperations';
 import { Task, User } from '@/components/task/TaskActions';
+import { TaskFilters, FilterState } from '@/components/task/TaskFilters';
+import { useAuthStore } from '@/store/authStore';
 import {
   Dialog,
   DialogContent,
@@ -43,6 +45,10 @@ export default function Timesheet() {
     const [newTaskOpen, setNewTaskOpen] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState<string>('TODO');
     
+    // Filters
+    const [filters, setFilters] = useState<FilterState>({});
+    const user = useAuthStore((state) => state.user);
+    
     // Form State
     const [taskTitle, setTaskTitle] = useState('');
     const [taskPriority, setTaskPriority] = useState('MEDIUM');
@@ -55,7 +61,15 @@ export default function Timesheet() {
         try {
             // Using ISO string date part for filtering
             const dateStr = format(date, 'yyyy-MM-dd');
-            const res = await axios.get(`http://localhost:3000/api/tasks?date=${dateStr}`);
+            // Merge filters, but if filters has specific dueDate range, it will override the daily view in backend
+            // Or we can exclude date params from filters if we want to enforce daily view? 
+            // User requirement assumes full filtering capability.
+            const res = await axios.get(`http://localhost:3000/api/tasks`, { 
+                params: { 
+                    date: dateStr, 
+                    ...filters 
+                } 
+            });
             setTasks(res.data);
         } catch (error) {
             console.error(error);
@@ -87,7 +101,7 @@ export default function Timesheet() {
 
     useEffect(() => {
         fetchTasks();
-    }, [date]);
+    }, [date, filters]);
 
     useEffect(() => {
         fetchEmployees();
@@ -147,6 +161,15 @@ export default function Timesheet() {
                             {date ? format(date, 'dd MMMM yyyy') : 'Select a Date'}
                         </h1>
                     </div>
+                </div>
+
+                <div className="mb-6">
+                    <TaskFilters 
+                        filters={filters} 
+                        setFilters={setFilters} 
+                        employees={employees}
+                        showAssignee={user?.role === 'MANAGER'}
+                    />
                 </div>
 
                 {loading ? (

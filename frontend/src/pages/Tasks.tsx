@@ -9,6 +9,8 @@ import { ListTodo } from 'lucide-react';
 import { TaskStatusGroup } from '@/components/task/TaskStatusGroup';
 import { useTaskOperations } from '@/hooks/useTaskOperations';
 import { Task, User } from '@/components/task/TaskActions';
+import { TaskFilters, FilterState } from '@/components/task/TaskFilters';
+import { useAuthStore } from '@/store/authStore';
 import {
   Dialog,
   DialogContent,
@@ -41,6 +43,10 @@ export default function Tasks() {
     const [newTaskOpen, setNewTaskOpen] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState<string>('TODO');
     
+    // Filters
+    const [filters, setFilters] = useState<FilterState>({});
+    const user = useAuthStore((state) => state.user);
+    
     // Form State
     const [taskTitle, setTaskTitle] = useState('');
     const [taskPriority, setTaskPriority] = useState('MEDIUM');
@@ -52,7 +58,7 @@ export default function Tasks() {
         setLoading(true);
         try {
             // Fetch all tasks without date filter
-            const res = await axios.get('http://localhost:3000/api/tasks');
+            const res = await axios.get('http://localhost:3000/api/tasks', { params: filters });
             setTasks(res.data);
         } catch (error) {
             console.error(error);
@@ -86,7 +92,7 @@ export default function Tasks() {
         fetchTasks();
         fetchEmployees();
         fetchGoals();
-    }, []);
+    }, [filters]);
 
     const handleCreateTask = async () => {
         if (!selectedGoalId || !taskTitle || !taskDueDate) return;
@@ -132,6 +138,16 @@ export default function Tasks() {
                             All Tasks
                         </h1>
                     </div>
+                </div>
+
+                <div className="mb-6 flex gap-2">
+                     <TaskFilters 
+                        filters={filters} 
+                        setFilters={setFilters} 
+                        employees={employees}
+                        showAssignee={true} // Manager view
+                    />
+                    <Button onClick={() => openAddTask('TODO')}>+ Add Task</Button>
                 </div>
 
                 {loading ? (

@@ -16,23 +16,83 @@ interface AuthRequest extends Request {
 }
 
 export const getGoals = async (req: AuthRequest, res: Response) => {
-    // If Admin, see all? Or just managers see their division? 
-    // Spec says: "manager bisa melihat task2 dan goals2 employee yang berada dalam 1 divisi dengan dia"
-    // "employee hanya bisa melihat goals2 dan task yang melekat pada dia dan di divisinya saja"
-    // So both Manager and Employee can see goals in their division.
-
     if (!req.user || !req.user.divisionId) {
         return res.status(400).json({ message: 'User not belonging to a division' });
     }
 
+    const { 
+        assigneeId,
+        priority,
+        status,
+        dueDateStart, dueDateEnd,
+        createdAtStart, createdAtEnd,
+        closedAtStart, closedAtEnd
+    } = req.query;
+
     try {
+        const taskWhereClause: any = {};
+
+        // --- Assignee Logic ---
+        if (assigneeId) {
+            taskWhereClause.assigneeId = Number(assigneeId);
+        }
+
+        // --- Priority & Status ---
+        if (priority && priority !== 'ALL') {
+             taskWhereClause.priority = priority as any;
+        }
+
+        if (status && status !== 'ALL') {
+             taskWhereClause.status = status as any;
+        }
+
+        // --- Date Range Helper ---
+        const buildDateFilter = (start: any, end: any) => {
+            if (!start && !end) return undefined;
+            const filter: any = {};
+            if (start) filter.gte = new Date(start as string);
+            if (end) {
+                const endDate = new Date(end as string);
+                if ((end as string).length <= 10) { 
+                    endDate.setHours(23, 59, 59, 999);
+                }
+                filter.lte = endDate;
+            }
+            return filter;
+        };
+
+        const dueDateFilter = buildDateFilter(dueDateStart, dueDateEnd);
+        if (dueDateFilter) taskWhereClause.dueDate = dueDateFilter;
+
+        const createdAtFilter = buildDateFilter(createdAtStart, createdAtEnd);
+        if (createdAtFilter) taskWhereClause.createdAt = createdAtFilter;
+
+        if (closedAtStart || closedAtEnd) {
+             const closedFilter = buildDateFilter(closedAtStart, closedAtEnd);
+             if (closedFilter) {
+                 taskWhereClause.updatedAt = closedFilter;
+                 taskWhereClause.status = 'COMPLETED'; 
+             }
+        }
+
+        const goalWhereClause: any = {
+             divisionId: req.user.divisionId
+        };
+
+        // If we are filtering tasks, only show goals that have matching tasks
+        // Check if taskWhereClause has any keys
+        if (Object.keys(taskWhereClause).length > 0) {
+            goalWhereClause.tasks = {
+                some: taskWhereClause
+            };
+        }
+
         const goals = await prisma.goal.findMany({
-            where: {
-                divisionId: req.user.divisionId
-            },
+            where: goalWhereClause,
             include: {
                 creator: { select: { id: true, name: true, email: true } },
                 tasks: {
+                    where: taskWhereClause,
                     include: {
                         assignee: { select: { id: true, name: true, email: true } },
                         comments: {
@@ -45,6 +105,7 @@ export const getGoals = async (req: AuthRequest, res: Response) => {
         });
         res.json(goals);
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Error fetching goals' });
     }
 }

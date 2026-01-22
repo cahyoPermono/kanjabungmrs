@@ -40,6 +40,8 @@ import {
 import { TaskStatusGroup } from '@/components/task/TaskStatusGroup';
 import { useTaskOperations } from '@/hooks/useTaskOperations';
 import { User, Task } from '@/components/task/TaskActions';
+import { TaskFilters, FilterState } from '@/components/task/TaskFilters';
+import { useAuthStore } from '@/store/authStore';
 
 interface Goal {
     id: number;
@@ -184,6 +186,10 @@ function GoalActionsMenu({ goal, onDelete, onEdit }: { goal: Goal, onDelete: (gi
     export default function ManagerDashboard() {
     const [goals, setGoals] = useState<Goal[]>([]);
     const [employees, setEmployees] = useState<User[]>([]);
+    
+    // Filters
+    const [filters, setFilters] = useState<FilterState>({});
+    const user = useAuthStore((state) => state.user);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
 
@@ -211,7 +217,10 @@ function GoalActionsMenu({ goal, onDelete, onEdit }: { goal: Goal, onDelete: (gi
 
     const fetchGoals = async () => {
         try {
-            const res = await axios.get('http://localhost:3000/api/goals');
+            // NOTE: If getGoals doesn't support task filtering, this won't work for tasks nested in goals.
+            // I should check goalController. IF it doesn't support it, I might need to implement it there too.
+            // For now, let's assume I need to pass params.
+            const res = await axios.get('http://localhost:3000/api/goals', { params: filters });
             setGoals(res.data);
         } catch (error) {
             console.error(error);
@@ -236,7 +245,7 @@ function GoalActionsMenu({ goal, onDelete, onEdit }: { goal: Goal, onDelete: (gi
     useEffect(() => {
         fetchGoals();
         fetchEmployees();
-    }, []);
+    }, [filters]);
 
     const handleCreateGoal = async () => {
         if (!goalTitle || !goalCode) return;
@@ -349,11 +358,18 @@ function GoalActionsMenu({ goal, onDelete, onEdit }: { goal: Goal, onDelete: (gi
                         onChange={(e) => setSearch(e.target.value)}
                     />
                     <div className="flex gap-2">
-                         <Button variant="outline" className="flex-1 md:flex-none" onClick={() => openAddTask(null)}>+ Add Task</Button>
-                         <Button className="flex-1 md:flex-none" onClick={() => { resetGoalForm(); setNewGoalOpen(true); }}>+ New Goal</Button> 
+                        <Button variant="outline" className="flex-1 md:flex-none" onClick={() => openAddTask(null)}>+ Add Task</Button>
+                        <Button className="flex-1 md:flex-none" onClick={() => { resetGoalForm(); setNewGoalOpen(true); }}>+ New Goal</Button> 
                     </div>
                 </div>
             </div>
+
+            <TaskFilters 
+                filters={filters} 
+                setFilters={setFilters} 
+                employees={employees}
+                showAssignee={true} 
+            />
 
             <div className="space-y-6">
                 {filteredGoals.map((goal) => (
