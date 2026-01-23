@@ -169,13 +169,15 @@ export const getEmployeeStats = async (req: AuthRequest, res: Response) => {
 }
 
 import ExcelJS from 'exceljs';
-import PDFDocument from 'pdfkit';
+// Replace standard pdfkit with pdfkit-table
+// @ts-ignore
+import PDFDocument from 'pdfkit-table';
 
 export const downloadReport = async (req: AuthRequest, res: Response) => {
     // Admin check - or Manager? User said "Admin Dashboard". Let's restrict to Admin/Manager?
     // User request: "untuk task2 nya hanya bisa dilihat admin... dan admin bisa delete task"
-    // "Fitur Download memungkinkan pengguna mengunduh data laporan task yang telah difilter."
-    if (!req.user || !['ADMIN', 'MANAGER'].includes(req.user.role)) {
+    // Update: User requested Employee can also download their own tasks.
+    if (!req.user || !['ADMIN', 'MANAGER', 'EMPLOYEE'].includes(req.user.role)) {
         return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -191,20 +193,23 @@ export const downloadReport = async (req: AuthRequest, res: Response) => {
     } = req.query;
 
     try {
-        // Build Where Clause (Reuse logic roughly or abstract it?)
-        // Abstracting would be better but for speed I will duplicate small logic or refactor later.
         const whereClause: any = {};
         
-        // Admin sees all? Or limited by Division? Admin usually cross-division?
-        // Prompt says "Daftar task lintas goal dan tim" for /home page.
-        // If user is Admin, maybe show all. If user is Manager, show their division.
-        if (req.user.role === 'MANAGER' && req.user.divisionId) {
+        // --- Role Based Scoping ---
+        if (req.user.role === 'EMPLOYEE') {
+            // Employees strictly see their own tasks
+            whereClause.assigneeId = req.user.id;
+        } else if (req.user.role === 'MANAGER' && req.user.divisionId) {
+             // Managers see their division's goals
              whereClause.goal = { divisionId: req.user.divisionId };
         }
-        // If Admin, no division restriction unless filtered? 
-        // Admin usually global.
 
-        if (assigneeId && assigneeId !== 'ALL') whereClause.assigneeId = Number(assigneeId);
+        // --- Filters ---
+        // For Managers/Admins, allow filtering by assignee. For Employees, this is ignored/overridden above.
+        if (req.user.role !== 'EMPLOYEE' && assigneeId && assigneeId !== 'ALL') {
+            whereClause.assigneeId = Number(assigneeId);
+        }
+
         if (priority && priority !== 'ALL') whereClause.priority = priority as any;
         if (status && status !== 'ALL') whereClause.status = status as any;
         if (goalId && goalId !== 'ALL') whereClause.goalId = Number(goalId);
@@ -284,32 +289,68 @@ export const downloadReport = async (req: AuthRequest, res: Response) => {
             res.end();
 
         } else if (format === 'pdf') {
-            const doc = new PDFDocument();
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', 'attachment; filename=tasks-report.pdf');
+            try {
+                const doc = new PDFDocument({ margin: 30, size: 'A4' });
+                
+                res.setHeader('Content-Type', 'application/pdf');
+                res.setHeader('Content-Disposition', 'attachment; filename=tasks-report.pdf');
 
-            doc.pipe(res);
+                doc.pipe(res);
 
-            doc.fontSize(16).text('Tasks Report', { align: 'center' });
-            doc.moveDown();
-            
-            // Simple text dump for PDF for now - tables in pdfkit are manual hard work or require plugin. 
-            // Using a simple list format for robustness.
-            tasks.forEach(task => {
-                doc.fontSize(12).text(`Task #${task.id}: ${task.title}`, { underline: true });
-                doc.fontSize(10).text(`Goal: ${task.goal.title} | Division: ${task.goal.division.name}`);
-                doc.text(`Assignee: ${task.assignee?.name || 'Unassigned'} | Status: ${task.status} | Priority: ${task.priority}`);
-                doc.text(`Due: ${task.dueDate ? task.dueDate.toISOString().split('T')[0] : '-'} | Created: ${task.createdAt.toISOString().split('T')[0]}`);
-                doc.moveDown(0.5);
-            });
+                // Header
+                doc.fontSize(20).text('Tasks Report', { align: 'center' });
+                doc.moveDown();
 
-            doc.end();
+                // Table
+                const table = {
+                    title: "Task Details",
+                    subtitle: `Generated on ${new Date().toLocaleDateString()}`,
+                    headers: [
+                        { label: "ID", property: 'id', width: 40 },
+                        { label: "Title", property: 'title', width: 150 },
+                        { label: "Goal", property: 'goal', width: 100 },
+                        { label: "Assignee", property: 'assignee', width: 80 },
+                        { label: "Status", property: 'status', width: 80 },
+                        { label: "Priority", property: 'priority', width: 60 },
+                        { label: "Due Date", property: 'dueDate', width: 70 }
+                    ],
+                    rows: tasks.map(task => [
+                        String(task.id),
+                        task.title || '',
+                        task.goal?.title || '',
+                        task.assignee?.name || 'Unassigned',
+                        String(task.status || ''),
+                        String(task.priority || ''),
+                        task.dueDate ? task.dueDate.toISOString().split('T')[0] : '-'
+                    ] as string[]), // Explicit cast to string[] to satisfy strict typing
+                };
+
+                // Use the callback-based table method if await doesn't work as expected or verify API
+                // PDFKit-table usually is `await doc.table(table)`
+                await doc.table(table, {
+                    prepareHeader: () => doc.font("Helvetica-Bold").fontSize(10),
+                    prepareRow: (row: any, indexColumn: any, indexRow: any, rectRow: any, rectCell: any) => {
+                        doc.font("Helvetica").fontSize(8);
+                        try {
+                            if (indexColumn === 0 && rectRow) {
+                                (doc as any).addBackground(rectRow, (indexRow % 2 ? 'blue' : 'white'), 0.15);
+                            }
+                        } catch (e) {}
+                        return doc;
+                    },
+                });
+                doc.end();
+            } catch (pdfError) {
+                console.error("PDF Generation Error:", pdfError);
+                // Can't really send JSON if headers already sent, but let's try
+                if (!res.headersSent) res.status(500).json({ message: 'Error generating PDF' });
+            }
         } else {
             res.status(400).json({ message: 'Invalid format requested' });
         }
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error generating report' });
+        if (!res.headersSent) res.status(500).json({ message: 'Error generating report' });
     }
 }

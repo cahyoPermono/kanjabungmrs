@@ -187,6 +187,228 @@ export default function Reports() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Detailed Task Report */}
+            <ReportsTaskList />
         </div>
+    );
+}
+
+// Separate component for the Task List section to keep main component clean
+// But for simplicity and to access state easily, I'll inline it or keep it here.
+// Actually, let's keep it clean.
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { TaskFilters, FilterState } from '@/components/task/TaskFilters';
+import { Download, FileSpreadsheet } from 'lucide-react';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+function ReportsTaskList() {
+    const [tasks, setTasks] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [totalTasks, setTotalTasks] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [limit] = useState(10);
+    
+    // Filters & Download
+    const [filters, setFilters] = useState<FilterState>({});
+    const [employees, setEmployees] = useState<any[]>([]);
+    const [goals, setGoals] = useState<any[]>([]);
+    const [downloadOpen, setDownloadOpen] = useState(false);
+    const [downloadFormat, setDownloadFormat] = useState<'excel' | 'pdf'>('excel');
+
+    // Fetch filters data (Employees & Goals)
+    useEffect(() => {
+        const fetchFiltersData = async () => {
+             try {
+                const [empRes, goalRes] = await Promise.all([
+                    axios.get('http://localhost:3000/api/goals/employees'),
+                    axios.get('http://localhost:3000/api/goals')
+                ]);
+                setEmployees(empRes.data);
+                setGoals(goalRes.data);
+            } catch (error) {
+                console.error("Error fetching filter options", error);
+            }
+        };
+        fetchFiltersData();
+    }, []);
+
+    const fetchTasks = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get('http://localhost:3000/api/tasks', {
+                params: {
+                    ...filters,
+                    page: currentPage,
+                    limit
+                }
+            });
+            
+            // Handle pagination structure
+            const taskData = Array.isArray(res.data) ? res.data : (res.data.data || []);
+            setTasks(taskData);
+            if (res.data.meta) {
+                 setTotalTasks(res.data.meta.total);
+                 setTotalPages(res.data.meta.totalPages);
+            }
+        } catch (error) {
+            console.error("Error fetching tasks", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchTasks();
+    }, [filters, currentPage]);
+
+    const handleDownload = async () => {
+         try {
+            const response = await axios.get('http://localhost:3000/api/reports/download', {
+                params: { ...filters, format: downloadFormat },
+                responseType: 'blob',
+            });
+            
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `tasks-report.${downloadFormat === 'excel' ? 'xlsx' : 'pdf'}`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setDownloadOpen(false);
+        } catch (error) {
+            console.error('Error downloading report', error);
+        }
+    };
+    
+    // Helper colors (duplicated from AdminDashboard/Board - ideally in utils)
+    const getPriorityColor = (priority: string) => {
+        switch (priority) {
+            case 'HIGH': return 'bg-red-500';
+            case 'MEDIUM': return 'bg-yellow-500';
+            case 'LOW': return 'bg-blue-500';
+            default: return 'bg-slate-500';
+        }
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'COMPLETED': return 'bg-green-600';
+            case 'IN_PROGRESS': return 'bg-blue-600';
+            case 'TODO': return 'bg-slate-500';
+            default: return 'bg-slate-500';
+        }
+    };
+
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle>Detailed Task Report</CardTitle>
+                    <CardDescription>View and filter tasks for your division</CardDescription>
+                </div>
+                <Dialog open={downloadOpen} onOpenChange={setDownloadOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" className="gap-2">
+                            <Download className="h-4 w-4" /> Download
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Download Report</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4 space-y-4">
+                            <Label>Format</Label>
+                            <Select value={downloadFormat} onValueChange={(v: any) => setDownloadFormat(v)}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="excel">Excel (.xlsx)</SelectItem>
+                                    <SelectItem value="pdf">PDF (.pdf)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={handleDownload}>Download</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    <TaskFilters 
+                        filters={filters} 
+                        setFilters={setFilters} 
+                        employees={employees}
+                        goals={goals}
+                        showAssignee={true} // Manager can see assignees
+                    />
+                    
+                     <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Task</TableHead>
+                                    <TableHead>Assignee</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Priority</TableHead>
+                                    <TableHead>Due Date</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {loading ? (
+                                    <TableRow><TableCell colSpan={5} className="text-center py-4">Loading...</TableCell></TableRow>
+                                ) : tasks.length === 0 ? (
+                                    <TableRow><TableCell colSpan={5} className="text-center py-4 text-muted-foreground">No tasks found.</TableCell></TableRow>
+                                ) : (
+                                    tasks.map(task => (
+                                        <TableRow key={task.id}>
+                                            <TableCell>
+                                                <div className="font-medium">{task.title}</div>
+                                                <div className="text-xs text-muted-foreground">{task.goal?.title}</div>
+                                            </TableCell>
+                                            <TableCell>{task.assignee?.name || 'Unassigned'}</TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className={`${getStatusColor(task.status)} text-white border-0`}>{task.status.replace('_', ' ')}</Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                 <Badge className={`${getPriorityColor(task.priority)} text-white border-0`}>{task.priority}</Badge>
+                                            </TableCell>
+                                            <TableCell>{task.dueDate ? format(new Date(task.dueDate), 'dd MMM yyyy') : '-'}</TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                     {/* Pagination */}
+                    <div className="flex items-center justify-end space-x-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1 || loading}
+                        >
+                            Previous
+                        </Button>
+                        <div className="text-sm font-medium">Page {currentPage} of {Math.max(totalPages, 1)}</div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage === totalPages || loading}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
     );
 }
