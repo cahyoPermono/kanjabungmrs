@@ -62,7 +62,10 @@ export default function EmployeeDashboard() {
                 axios.get('http://localhost:3000/api/goals'),
                 axios.get('http://localhost:3000/api/goals/employees')
             ]);
-            setTasks(tasksRes.data);
+            
+            // Handle paginated response structure
+            const taskData = Array.isArray(tasksRes.data) ? tasksRes.data : (tasksRes.data.data || []);
+            setTasks(taskData);
             setGoals(goalsRes.data);
             setEmployees(employeesRes.data);
         } catch (error) {

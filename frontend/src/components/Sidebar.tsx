@@ -26,9 +26,10 @@ export function Sidebar({ className }: { className?: string }) {
         { href: '/divisions', label: 'Divisions', icon: Building2, roles: ['ADMIN'] },
         { href: '/employee', label: 'Home', icon: Home, roles: ['EMPLOYEE'] },
         { href: '/board', label: 'Board', icon: Kanban, roles: ['EMPLOYEE'] }, // New Board Link
-        { href: '/teams', label: 'Teams', icon: Users, roles: ['MANAGER', 'ADMIN'] }, // Placeholder
+        { href: '/teams', label: 'Teams', icon: Users, roles: ['MANAGER'] }, // Placeholder
         { href: '/timesheet', label: 'Timesheet', icon: Calendar, roles: ['MANAGER', 'EMPLOYEE'] },
         { href: '/tasks', label: 'Tasks', icon: ListTodo, roles: ['MANAGER'] },
+        { href: '/reports', label: 'Reports', icon: FileText, roles: ['MANAGER'] },
         { href: '/employee-reports', label: 'Report', icon: FileText, roles: ['EMPLOYEE'] }, // Employee Reports
         // Profile moved to footer
     ];

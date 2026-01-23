@@ -59,7 +59,10 @@ export default function Tasks() {
         try {
             // Fetch all tasks without date filter
             const res = await axios.get('http://localhost:3000/api/tasks', { params: filters });
-            setTasks(res.data);
+            
+            // Handle paginated response structure
+            const taskData = Array.isArray(res.data) ? res.data : (res.data.data || []);
+            setTasks(taskData);
         } catch (error) {
             console.error(error);
         } finally {

@@ -144,59 +144,78 @@ export default function Accounts() {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
+        <div className="space-y-6 container mx-auto max-w-6xl py-8">
+            {/* Header Section */}
+            <div className="flex flex-col space-y-2">
                 <h1 className="text-3xl font-bold tracking-tight">Pengaturan User</h1>
-                <Button onClick={() => { setIsEditing(false); setCurrentUser({}); setIsDialogOpen(true); }}>
-                    <Plus className="mr-2 h-4 w-4" /> Add User
+                <p className="text-muted-foreground w-full md:w-2/3">
+                    Kelola pengguna aplikasi dengan mudah. Anda dapat menambahkan user baru, mengubah peran dan divisi, serta menonaktifkan akun.
+                </p>
+            </div>
+
+            {/* Actions Bar */}
+            <div className="flex justify-end">
+                 <Button onClick={() => { setIsEditing(false); setCurrentUser({}); setIsDialogOpen(true); }}>
+                    <Plus className="mr-2 h-4 w-4" /> Add New User
                 </Button>
             </div>
 
             <Card>
-                <CardHeader>
-                    <CardTitle>Daftar Pengguna</CardTitle>
+                <CardHeader className="px-6 py-4 border-b">
+                    <CardTitle className="text-lg">Daftar Pengguna</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-0">
                     <Table>
                         <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Email</TableHead>
+                            <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                <TableHead className="pl-6 w-[250px]">Name</TableHead>
+                                <TableHead className="w-[250px]">Email</TableHead>
                                 <TableHead>Role</TableHead>
                                 <TableHead>Division</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
+                                <TableHead className="text-right pr-6">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center">Loading...</TableCell>
+                                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading users...</TableCell>
                                 </TableRow>
                             ) : users.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center">No users found.</TableCell>
+                                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No users found.</TableCell>
                                 </TableRow>
                             ) : (
                                 users.map((user) => (
-                                    <TableRow key={user.id}>
-                                        <TableCell className="font-medium">{user.name}</TableCell>
-                                        <TableCell>{user.email}</TableCell>
-                                        <TableCell><Badge variant="outline">{user.role}</Badge></TableCell>
-                                        <TableCell>{user.division?.name || '-'}</TableCell>
+                                    <TableRow key={user.id} className="hover:bg-muted/5">
+                                        <TableCell className="pl-6 font-medium">
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                                                    {user.name.charAt(0).toUpperCase()}
+                                                </div>
+                                                {user.name}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">{user.email}</TableCell>
                                         <TableCell>
-                                            <Badge variant={user.isActive ? 'default' : 'destructive'}>
+                                            <Badge variant="secondary" className="font-normal border-primary/20 text-primary-700 bg-primary/5">
+                                                {user.role}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>{user.division?.name || <span className="text-muted-foreground italic">None</span>}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={user.isActive ? 'default' : 'destructive'} className={user.isActive ? "bg-green-600 hover:bg-green-700" : ""}>
                                                 {user.isActive ? 'Active' : 'Inactive'}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-right space-x-2">
-                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(user)}>
+                                        <TableCell className="text-right pr-6 space-x-1">
+                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(user)} className="h-8 w-8 text-muted-foreground hover:text-primary">
                                                 <Pencil className="h-4 w-4" />
                                             </Button>
                                             <Button 
                                                 variant="ghost" 
                                                 size="icon" 
-                                                className={user.isActive ? "text-destructive" : "text-green-600"}
+                                                className={`h-8 w-8 ${user.isActive ? "text-muted-foreground hover:text-destructive" : "text-green-600 hover:text-green-700"}`}
                                                 onClick={() => handleToggleStatusClick(user)}
                                             >
                                                 {user.isActive ? <Power className="h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}
@@ -212,32 +231,34 @@ export default function Accounts() {
 
             {/* Create/Edit User Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent>
+                <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
                         <DialogTitle>{isEditing ? 'Edit User' : 'Add New User'}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Name</Label>
+                    <form onSubmit={handleSubmit} className="space-y-4 py-2">
+                        <div className="grid gap-2">
+                            <Label htmlFor="name">Full Name</Label>
                             <Input 
                                 id="name" 
                                 value={currentUser.name || ''} 
                                 onChange={(e) => setCurrentUser({...currentUser, name: e.target.value})} 
                                 required 
+                                placeholder="John Doe"
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
+                        <div className="grid gap-2">
+                            <Label htmlFor="email">Email Address</Label>
                             <Input 
                                 id="email" 
                                 type="email" 
                                 value={currentUser.email || ''} 
                                 onChange={(e) => setCurrentUser({...currentUser, email: e.target.value})} 
                                 required 
+                                placeholder="john@example.com"
                             />
                         </div>
                         {!isEditing && (
-                            <div className="space-y-2">
+                            <div className="grid gap-2">
                                 <Label htmlFor="password">Password</Label>
                                 <Input 
                                     id="password" 
@@ -248,44 +269,46 @@ export default function Accounts() {
                                 />
                             </div>
                         )}
-                        <div className="space-y-2">
-                            <Label htmlFor="role">Role</Label>
-                            <Select 
-                                value={currentUser.role} 
-                                onValueChange={(value: 'ADMIN' | 'MANAGER' | 'EMPLOYEE') => setCurrentUser({...currentUser, role: value})}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select role" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="ADMIN">Admin</SelectItem>
-                                    <SelectItem value="MANAGER">Manager</SelectItem>
-                                    <SelectItem value="EMPLOYEE">Employee</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="role">Role</Label>
+                                <Select 
+                                    value={currentUser.role} 
+                                    onValueChange={(value: 'ADMIN' | 'MANAGER' | 'EMPLOYEE') => setCurrentUser({...currentUser, role: value})}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select role" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="ADMIN">Admin</SelectItem>
+                                        <SelectItem value="MANAGER">Manager</SelectItem>
+                                        <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="division">Division</Label>
+                                <Select 
+                                    value={currentUser.divisionId?.toString()} 
+                                    onValueChange={(value) => setCurrentUser({...currentUser, divisionId: value ? parseInt(value) : null})}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select division" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="0">None</SelectItem>
+                                        {divisions.map((div) => (
+                                            <SelectItem key={div.id} value={div.id.toString()}>
+                                                {div.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="division">Division</Label>
-                            <Select 
-                                value={currentUser.divisionId?.toString()} 
-                                onValueChange={(value) => setCurrentUser({...currentUser, divisionId: value ? parseInt(value) : null})}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select division" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="0">None</SelectItem>
-                                    {divisions.map((div) => (
-                                        <SelectItem key={div.id} value={div.id.toString()}>
-                                            {div.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <DialogFooter>
+                        <DialogFooter className="pt-4">
                             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                            <Button type="submit">Save</Button>
+                            <Button type="submit">Save Changes</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>

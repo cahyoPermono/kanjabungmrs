@@ -26,8 +26,14 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
         status,
         dueDateStart, dueDateEnd,
         createdAtStart, createdAtEnd,
-        closedAtStart, closedAtEnd
+        closedAtStart, closedAtEnd,
+        page = 1,
+        limit = 10
     } = req.query; 
+
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const skip = (pageNum - 1) * limitNum;
 
     try {
         const whereClause: any = {
@@ -93,19 +99,33 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
              }
         }
 
-        const tasks = await prisma.task.findMany({
-            where: whereClause,
-            include: {
-                goal: { select: { title: true, code: true } },
-                assignee: { select: { id: true, name: true, email: true } },
-                comments: {
-                    include: { user: { select: { id: true, name: true } } },
-                    orderBy: { createdAt: 'desc' }
-                }
-            },
-            orderBy: { createdAt: 'desc' }
+        const [tasks, total] = await Promise.all([
+            prisma.task.findMany({
+                where: whereClause,
+                include: {
+                    goal: { select: { title: true, code: true } },
+                    assignee: { select: { id: true, name: true, email: true } },
+                    comments: {
+                        include: { user: { select: { id: true, name: true } } },
+                        orderBy: { createdAt: 'desc' }
+                    }
+                },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limitNum
+            }),
+            prisma.task.count({ where: whereClause })
+        ]);
+
+        res.json({
+            data: tasks,
+            meta: {
+                total,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(total / limitNum)
+            }
         });
-        res.json(tasks);
     } catch (error) {
         console.error("Error fetching tasks:", error);
         res.status(500).json({ message: 'Error fetching tasks' });

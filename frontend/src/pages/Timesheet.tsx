@@ -70,7 +70,9 @@ export default function Timesheet() {
                     ...filters 
                 } 
             });
-            setTasks(res.data);
+            // Handle paginated response structure
+            const taskData = Array.isArray(res.data) ? res.data : (res.data.data || []);
+            setTasks(taskData);
         } catch (error) {
             console.error(error);
         } finally {

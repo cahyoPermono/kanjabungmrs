@@ -15,7 +15,7 @@ export default function EmployeeReports() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const { data } = await axios.get("http://localhost:3000/api/reports/employee");
+        const { data } = await axios.get("http://localhost:3000/api/reports/employee-stats");
         setStats(data);
       } catch (error) {
         console.error("Failed to fetch employee stats", error);

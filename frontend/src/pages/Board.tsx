@@ -72,8 +72,12 @@ export default function Board() {
             axios.get('http://localhost:3000/api/goals/employees')
         ]);
         
+        
+        // Handle paginated response structure
+        const allTasks = Array.isArray(tasksRes.data) ? tasksRes.data : (tasksRes.data.data || []);
+        
         // Filter for employee's tasks
-        const myTasks = tasksRes.data.filter((t: Task) => t.assigneeId === user?.id);
+        const myTasks = allTasks.filter((t: Task) => t.assigneeId === user?.id);
         setTasks(myTasks);
         setGoals(goalsRes.data);
         setEmployees(employeesRes.data);

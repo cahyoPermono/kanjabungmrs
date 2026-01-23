@@ -43,7 +43,7 @@ export default function Reports() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await axios.get('http://localhost:3000/api/reports');
+                const res = await axios.get('http://localhost:3000/api/reports/dashboard-stats');
                 setData(res.data);
             } catch (error) {
                 console.error("Error fetching report data", error);

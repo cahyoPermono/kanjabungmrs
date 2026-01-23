@@ -117,55 +117,74 @@ export default function Divisions() {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold tracking-tight">Menu Division</h1>
-                <Button onClick={() => { setIsEditing(false); setCurrentDivision({}); setIsDialogOpen(true); }}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Division
+        <div className="space-y-6 container mx-auto max-w-6xl py-8">
+            {/* Header Section */}
+            <div className="flex flex-col space-y-2">
+                <h1 className="text-3xl font-bold tracking-tight">Pengaturan Divisi</h1>
+                <p className="text-muted-foreground w-full md:w-2/3">
+                    Kelola unit kerja dan struktur organisasi. Setiap divisi akan memiliki anggota team yang dapat dikelola.
+                </p>
+            </div>
+
+            {/* Actions Bar */}
+            <div className="flex justify-end">
+                 <Button onClick={() => { setIsEditing(false); setCurrentDivision({}); setIsDialogOpen(true); }}>
+                    <Plus className="mr-2 h-4 w-4" /> Add New Division
                 </Button>
             </div>
 
             <Card>
-                <CardHeader>
-                    <CardTitle>Daftar Divisi</CardTitle>
+                <CardHeader className="px-6 py-4 border-b">
+                    <CardTitle className="text-lg">Daftar Divisi</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-0">
                     <Table>
                         <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
+                            <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                <TableHead className="pl-6 w-[300px]">Name</TableHead>
                                 <TableHead>Users Count</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
+                                <TableHead className="text-right pr-6">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center">Loading...</TableCell>
+                                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Loading divisions...</TableCell>
                                 </TableRow>
                             ) : divisions.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center">No divisions found.</TableCell>
+                                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No divisions found.</TableCell>
                                 </TableRow>
                             ) : (
                                 divisions.map((division) => (
-                                    <TableRow key={division.id}>
-                                        <TableCell className="font-medium">{division.name}</TableCell>
-                                        <TableCell>{division._count?.users || 0}</TableCell>
+                                    <TableRow key={division.id} className="hover:bg-muted/5">
+                                        <TableCell className="pl-6 font-medium">
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                                                    {division.name.substring(0, 2).toUpperCase()}
+                                                </div>
+                                                {division.name}
+                                            </div>
+                                        </TableCell>
                                         <TableCell>
-                                            <Badge variant={division.isActive ? 'default' : 'destructive'}>
+                                            <Badge variant="outline" className="font-normal text-muted-foreground">
+                                                {division._count?.users || 0} Users
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={division.isActive ? 'default' : 'destructive'} className={division.isActive ? "bg-green-600 hover:bg-green-700" : ""}>
                                                 {division.isActive ? 'Active' : 'Inactive'}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-right space-x-2">
-                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(division)}>
+                                        <TableCell className="text-right pr-6 space-x-1">
+                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(division)} className="h-8 w-8 text-muted-foreground hover:text-primary">
                                                 <Pencil className="h-4 w-4" />
                                             </Button>
                                             <Button 
                                                 variant="ghost" 
                                                 size="icon" 
-                                                className={division.isActive ? "text-destructive" : "text-green-600"}
+                                                className={`h-8 w-8 ${division.isActive ? "text-muted-foreground hover:text-destructive" : "text-green-600 hover:text-green-700"}`}
                                                 onClick={() => handleToggleStatusClick(division)}
                                             >
                                                 {division.isActive ? <Power className="h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}
